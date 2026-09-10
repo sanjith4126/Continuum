@@ -20,8 +20,8 @@ insert into party (id, kind, name, email, roles) values
 
 -- App users (a finance login and a student login) -----------------------------
 insert into app_user (id, party_id, email, role) values
-  ('00000000-0000-0000-0000-0000000000u1', null,                                   'finance@continuum.example','finance'),
-  ('00000000-0000-0000-0000-0000000000u2','00000000-0000-0000-0000-0000000000a5','ananya@student.example',   'student');
+  ('00000000-0000-0000-0000-0000000000f1', null,                                   'finance@continuum.example','finance'),
+  ('00000000-0000-0000-0000-0000000000f2','00000000-0000-0000-0000-0000000000a5','ananya@student.example',   'student');
 
 -- Course ----------------------------------------------------------------------
 insert into course (id, title, default_price) values
@@ -30,7 +30,7 @@ insert into course (id, title, default_price) values
 -- Enquiry / lead (Acme, from a LinkedIn campaign that cost 4,000) --------------
 insert into enquiry (id, party_id, source, source_cost, stage, owner_id, created_at) values
   ('00000000-0000-0000-0000-0000000000e1','00000000-0000-0000-0000-0000000000a1','linkedin',4000,'won',
-   '00000000-0000-0000-0000-0000000000u1', now() - interval '30 days');
+   '00000000-0000-0000-0000-0000000000f1', now() - interval '30 days');
 
 insert into activity (enquiry_id, party_id, kind, note, occurred_at) values
   ('00000000-0000-0000-0000-0000000000e1','00000000-0000-0000-0000-0000000000a1','call','Intro call — 20 seats for Python', now() - interval '28 days'),
@@ -45,27 +45,27 @@ insert into batch (id, course_id, trainer_id, source_lead_id, name, location, st
 
 -- Enrollments + a little attendance -------------------------------------------
 insert into enrollment (id, batch_id, student_id, status) values
-  ('00000000-0000-0000-0000-0000000000n1','00000000-0000-0000-0000-0000000000b1','00000000-0000-0000-0000-0000000000a5','completed'),
-  ('00000000-0000-0000-0000-0000000000n2','00000000-0000-0000-0000-0000000000b1','00000000-0000-0000-0000-0000000000a6','active');
+  ('00000000-0000-0000-0000-0000000000c2','00000000-0000-0000-0000-0000000000b1','00000000-0000-0000-0000-0000000000a5','completed'),
+  ('00000000-0000-0000-0000-0000000000c3','00000000-0000-0000-0000-0000000000b1','00000000-0000-0000-0000-0000000000a6','active');
 
 insert into attendance (enrollment_id, session_date, present) values
-  ('00000000-0000-0000-0000-0000000000n1', current_date - 18, true),
-  ('00000000-0000-0000-0000-0000000000n1', current_date - 16, true);
+  ('00000000-0000-0000-0000-0000000000c2', current_date - 18, true),
+  ('00000000-0000-0000-0000-0000000000c2', current_date - 16, true);
 
 -- Invoices + lines (the revenue side, tagged to the batch) --------------------
 insert into invoice (id, party_id, batch_id, status, issued_at) values
-  ('00000000-0000-0000-0000-0000000000i1','00000000-0000-0000-0000-0000000000a1','00000000-0000-0000-0000-0000000000b1','part_paid', now() - interval '14 days'),
-  ('00000000-0000-0000-0000-0000000000i2','00000000-0000-0000-0000-0000000000a2','00000000-0000-0000-0000-0000000000b2','paid',      now() - interval '12 days');
+  ('00000000-0000-0000-0000-0000000000d1','00000000-0000-0000-0000-0000000000a1','00000000-0000-0000-0000-0000000000b1','part_paid', now() - interval '14 days'),
+  ('00000000-0000-0000-0000-0000000000d2','00000000-0000-0000-0000-0000000000a2','00000000-0000-0000-0000-0000000000b2','paid',      now() - interval '12 days');
 
 insert into invoice_line (invoice_id, batch_id, description, amount, occurred_at) values
-  ('00000000-0000-0000-0000-0000000000i1','00000000-0000-0000-0000-0000000000b1','20 seats × Advanced Python', 400000, now() - interval '14 days'),
-  ('00000000-0000-0000-0000-0000000000i2','00000000-0000-0000-0000-0000000000b2','16 seats × DevOps Bootcamp', 320000, now() - interval '12 days');
+  ('00000000-0000-0000-0000-0000000000d1','00000000-0000-0000-0000-0000000000b1','20 seats × Advanced Python', 400000, now() - interval '14 days'),
+  ('00000000-0000-0000-0000-0000000000d2','00000000-0000-0000-0000-0000000000b2','16 seats × DevOps Bootcamp', 320000, now() - interval '12 days');
 
 -- Payments (Acme: half paid, half outstanding & aging; TCS: paid) -------------
 insert into payment (invoice_id, amount, method, due_on, paid_at) values
-  ('00000000-0000-0000-0000-0000000000i1', 200000, 'bank', current_date - 10, now() - interval '10 days'),
-  ('00000000-0000-0000-0000-0000000000i1', 200000, 'bank', current_date - 3,  null),   -- outstanding, aging
-  ('00000000-0000-0000-0000-0000000000i2', 320000, 'bank', current_date - 8,  now() - interval '8 days');
+  ('00000000-0000-0000-0000-0000000000d1', 200000, 'bank', current_date - 10, now() - interval '10 days'),
+  ('00000000-0000-0000-0000-0000000000d1', 200000, 'bank', current_date - 3,  null),   -- outstanding, aging
+  ('00000000-0000-0000-0000-0000000000d2', 320000, 'bank', current_date - 8,  now() - interval '8 days');
 
 -- Expenses (cost side, tagged to the batch) -----------------------------------
 insert into expense (batch_id, category, vendor, amount, occurred_at) values
@@ -86,7 +86,7 @@ insert into ledger_event (occurred_at, event_type, entity_type, entity_id, batch
   (now() - interval '30 days','expense.recorded',   'expense',        null,                                   '00000000-0000-0000-0000-0000000000b1',  -4000,  '{"category":"marketing"}'),
   (now() - interval '20 days','lead.converted',     'enquiry',        '00000000-0000-0000-0000-0000000000e1', null,                                    null,    '{}'),
   (now() - interval '20 days','batch.created',      'batch',          '00000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-0000000000b1',  null,    '{}'),
-  (now() - interval '14 days','invoice.raised',     'invoice',        '00000000-0000-0000-0000-0000000000i1', '00000000-0000-0000-0000-0000000000b1',  400000, '{"gst_rate":18}'),
+  (now() - interval '14 days','invoice.raised',     'invoice',        '00000000-0000-0000-0000-0000000000d1', '00000000-0000-0000-0000-0000000000b1',  400000, '{"gst_rate":18}'),
   (now() - interval '18 days','expense.recorded',   'expense',        null,                                   '00000000-0000-0000-0000-0000000000b1',  -60000, '{"category":"venue"}'),
   (now() - interval '10 days','payment.received',   'payment',        null,                                   '00000000-0000-0000-0000-0000000000b1',  null,    '{"amount":200000}'),
   (now() - interval '5 days', 'trainer_payment.recorded','trainer_payment', null,                             '00000000-0000-0000-0000-0000000000b1',  -156000,'{}');
