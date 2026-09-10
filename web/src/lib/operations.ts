@@ -16,8 +16,8 @@ export async function submitOperation(_previous:FormResult,form:FormData):Promis
   await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${user.id+requestId},0))`);
   const previous=await tx.execute(sql`select result from operation_request where user_id=${user.id}::uuid and request_id=${requestId}::uuid`);
   if(previous.rows[0])return previous.rows[0].result as FormResult;
-  async function event(type:string,entity:string,id:string,batchId:string|null=null,payload:Record<string,unknown>={}){
-   await tx.execute(sql`insert into ledger_event(actor_id,event_type,entity_type,entity_id,batch_id,payload) values(${user.id}::uuid,${type}::event_type,${entity},${id}::uuid,${batchId}::uuid,${JSON.stringify(payload)}::jsonb)`);
+  async function event(type:string,entity:string,id:string,batchId:string|null=null,payload:Record<string,unknown>={},amount:string|null=null){
+   await tx.execute(sql`insert into ledger_event(actor_id,event_type,entity_type,entity_id,batch_id,payload,amount) values(${user.id}::uuid,${type}::event_type,${entity},${id}::uuid,${batchId}::uuid,${JSON.stringify(payload)}::jsonb,${amount}::numeric)`);
   }
   const uuid=(key:string)=>{const v=get(key);requireUuid(v,key);return v;};
   const text=(key:string,max=200)=>{const v=get(key);requireText(v,key,max);return v;};
@@ -120,7 +120,7 @@ export async function submitOperation(_previous:FormResult,form:FormData):Promis
     const paidAmount=Number(found.rows[0].paid_amount);
     if(refundedSoFar+Number(amount)>paidAmount+0.001)throw new Error("This exceeds what was actually collected on this installment.");
     const rows=await tx.execute(sql`insert into payment(invoice_id,amount,method,paid_at) values(${invoiceId}::uuid,${"-"+amount},'refund',now()) returning id`);
-    await event("payment.refunded","payment",String(rows.rows[0].id),batchId,{amount,originalPaymentId:id});
+    await event("payment.refunded","payment",String(rows.rows[0].id),batchId,{amount,originalPaymentId:id},"-"+amount);
     await tx.execute(sql`update invoice set status=case
       when (select coalesce(sum(amount),0) from payment where invoice_id=${invoiceId}::uuid and paid_at is not null)
         >= (select coalesce(sum(amount-discount),0) from invoice_line where invoice_id=${invoiceId}::uuid)

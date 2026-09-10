@@ -52,11 +52,15 @@ export function ConsultantChat() {
 
   async function exportToExcel() {
     if (!result || !result.ok || result.rows.length === 0) return;
-    const XLSX = await import("xlsx");
-    const ws = XLSX.utils.json_to_sheet(result.rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Answer");
-    XLSX.writeFile(wb, "continuum-consultant-answer.xlsx");
+    const { default: writeXlsxFile } = await import("write-excel-file/browser");
+    const columns = Object.keys(result.rows[0]);
+    const data = [
+      columns.map((column) => ({ value: column, fontWeight: "bold" as const })),
+      ...result.rows.map((row) => columns.map((column) => formatCellValue(row[column]))),
+    ];
+    await writeXlsxFile(data, { sheet: "Answer" }).toFile(
+      "continuum-consultant-answer.xlsx",
+    );
   }
 
   const firstBatchId =

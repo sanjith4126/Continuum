@@ -4,7 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "npm --prefix web run build",
+    "lint": "npm --prefix web run lint",
+    "typecheck": "npm exec --prefix web -- tsc --noEmit --project web/tsconfig.json",
+    "test": "node scripts/validation-tests.js && node scripts/integration-tests.js",
+    "test:db": "node scripts/audit-db.js"
   },
   "keywords": [],
   "author": "",
