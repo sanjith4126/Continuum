@@ -287,8 +287,13 @@ $$;
 -- The app sets two settings per request/transaction, e.g.:
 --   set local app.user_role = 'finance';
 --   set local app.party_id  = '<the signed-in party uuid>';
--- Staff roles see everything; a student sees only their own rows. The AI runs
--- as the student's context (or a read-only role) so the same rules bind it.
+-- Staff roles see everything; a student sees only their own rows (plus the
+-- shared invoice/payment for a batch they're enrolled in — see
+-- invoice_access below). These policies only bind a connection that does
+-- NOT have rolbypassrls (table owners bypass RLS by default — see the
+-- continuum_app note near the bottom of this section for why that matters).
+-- The student assistant runs as continuum_app; the AI data consultant runs
+-- as continuum_ai (read-only views only, no base-table access at all).
 
 alter table enrollment enable row level security;
 alter table attendance enable row level security;
@@ -308,16 +313,34 @@ create policy attendance_access on attendance for select using (
   )
 );
 
+-- invoice_access has two student-visibility branches: party_id (the
+-- student is themself the billed party — rare, but kept for that case) and
+-- batch_id via their own enrollment (the common case: a corporate buyer is
+-- billed, e.g. Acme, but every student enrolled in that batch can see the
+-- programme's invoice as shared billing context — not personal debt, see
+-- the student assistant's UI copy). The enrollment branch joins strictly
+-- through enrollment.batch_id keyed to the caller's own party_id — it does
+-- not widen access to other batches from the same paying org.
 create policy invoice_access on invoice for select using (
   current_setting('app.user_role', true) in ('finance','management','sales','ops')
   or party_id = nullif(current_setting('app.party_id', true), '')::uuid
+  or batch_id in (
+    select batch_id from enrollment
+    where student_id = nullif(current_setting('app.party_id', true), '')::uuid
+  )
 );
 
+-- payment_access mirrors invoice_access's two branches through the invoice
+-- it belongs to (payment has no batch_id of its own).
 create policy payment_access on payment for select using (
   current_setting('app.user_role', true) in ('finance','management','sales','ops')
   or invoice_id in (
     select id from invoice
     where party_id = nullif(current_setting('app.party_id', true), '')::uuid
+       or batch_id in (
+         select batch_id from enrollment
+         where student_id = nullif(current_setting('app.party_id', true), '')::uuid
+       )
   )
 );
 
@@ -326,3 +349,17 @@ create policy payment_access on payment for select using (
 --   grant usage on schema public to continuum_ai;
 --   grant select on batch_pnl, collections_aging, dashboard_kpis to continuum_ai;
 --   -- deliberately NO grant on base tables → the agent only sees safe views.
+
+-- Student-assistant role. IMPORTANT: neondb_owner (the role migrations and
+-- the app connect as, on Neon) owns these tables and therefore has
+-- rolbypassrls = true by default — RLS is silently a no-op for that
+-- connection regardless of app.user_role/app.party_id. Any code path that
+-- needs RLS to actually apply (the student assistant) MUST run as a role
+-- with rolbypassrls = false, granted only the tables it needs:
+--   create role continuum_app nologin nobypassrls;
+--   grant usage on schema public to continuum_app;
+--   grant select on enrollment, attendance, invoice, payment, batch, course
+--     to continuum_app;
+--   -- deliberately no grant on party, ledger_event, or any money-out table.
+--   grant continuum_app to neondb_owner;  -- lets the app SET LOCAL ROLE
+-- Empirically verified (not just declared) in scripts/setup-app-role.js.
