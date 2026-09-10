@@ -295,10 +295,11 @@ $$;
 -- The student assistant runs as continuum_app; the AI data consultant runs
 -- as continuum_ai (read-only views only, no base-table access at all).
 
-alter table enrollment enable row level security;
-alter table attendance enable row level security;
-alter table invoice    enable row level security;
-alter table payment    enable row level security;
+alter table enrollment  enable row level security;
+alter table attendance  enable row level security;
+alter table invoice     enable row level security;
+alter table payment     enable row level security;
+alter table invoice_line enable row level security;
 
 create policy enrollment_access on enrollment for select using (
   current_setting('app.user_role', true) <> 'student'
@@ -344,6 +345,23 @@ create policy payment_access on payment for select using (
   )
 );
 
+-- invoice_line has its own batch_id column, so its policy checks enrollment
+-- directly rather than indirecting through invoice. NOTE: this policy is
+-- not optional decoration — invoice_line was briefly GRANTed to
+-- continuum_app without RLS enabled on the table at all, on the mistaken
+-- assumption that "application code only ever joins through invoice first"
+-- made a bare grant safe. It does not: a GRANT has no way to know how a
+-- query intends to join, and scripts/setup-app-role.js's live check 2b
+-- caught this table leaking another student's invoice line before this
+-- policy existed. RLS on the table itself is what actually enforces it.
+create policy invoice_line_access on invoice_line for select using (
+  current_setting('app.user_role', true) in ('finance','management','sales','ops')
+  or batch_id in (
+    select batch_id from enrollment
+    where student_id = nullif(current_setting('app.party_id', true), '')::uuid
+  )
+);
+
 -- AI read-only role (create once at the DB level, then use it for the agent):
 --   create role continuum_ai nologin;
 --   grant usage on schema public to continuum_ai;
@@ -358,8 +376,11 @@ create policy payment_access on payment for select using (
 -- with rolbypassrls = false, granted only the tables it needs:
 --   create role continuum_app nologin nobypassrls;
 --   grant usage on schema public to continuum_app;
---   grant select on enrollment, attendance, invoice, payment, batch, course
---     to continuum_app;
+--   grant select on enrollment, attendance, invoice, payment, invoice_line,
+--     batch, course to continuum_app;
 --   -- deliberately no grant on party, ledger_event, or any money-out table.
+--   -- every granted table with student-identifying rows (enrollment,
+--   -- attendance, invoice, payment, invoice_line) has its own RLS policy
+--   -- above — the grant alone is never sufficient, see invoice_line_access.
 --   grant continuum_app to neondb_owner;  -- lets the app SET LOCAL ROLE
 -- Empirically verified (not just declared) in scripts/setup-app-role.js.

@@ -29,18 +29,24 @@ async function main() {
 
   await client.query('grant usage on schema public to continuum_app');
   // SELECT only, on exactly the tables the student assistant's typed tools
-  // need: enrollment/attendance (schedule), invoice/payment (balance),
-  // batch/course (names to join against). No party, no ledger_event, no
-  // write anywhere.
-  await client.query(`
-    grant select on enrollment, attendance, invoice, payment, batch, course
-    to continuum_app
-  `);
+  // need: enrollment/attendance (schedule), invoice/payment/invoice_line
+  // (balance), batch/course (names to join against). No party, no
+  // ledger_event, no write anywhere.
+  //
+  // invoice_line now has its own RLS policy (invoice_line_access, added in
+  // db/schema.sql) mirroring invoice_access's enrollment branch directly on
+  // invoice_line.batch_id. An EARLIER version of this comment claimed the
+  // grant was safe because application code only ever reached invoice_line
+  // through an invoice join — that was wrong and this setup script's own
+  // check 2b caught it live: a bare `select invoice_id from invoice_line`
+  // as continuum_app returned TCS's line to a student enrolled only in
+  // Acme's batch, because a GRANT has no idea how application code intends
+  // to join a table. The fix is RLS on invoice_line itself, not careful
+  // query authorship — that's what makes the grant actually safe now.
+  const GRANTED_TABLES = 'enrollment, attendance, invoice, payment, invoice_line, batch, course';
+  await client.query(`grant select on ${GRANTED_TABLES} to continuum_app`);
   await client.query('revoke all on all tables in schema public from continuum_app');
-  await client.query(`
-    grant select on enrollment, attendance, invoice, payment, batch, course
-    to continuum_app
-  `);
+  await client.query(`grant select on ${GRANTED_TABLES} to continuum_app`);
   await client.query(
     'alter default privileges in schema public revoke all on tables from continuum_app'
   );
@@ -90,6 +96,26 @@ async function main() {
   } catch (err) {
     await client.query('rollback').catch(() => {});
     console.log(`[ok] read party (no grant, no RLS)  blocked: ${err.message.slice(0, 60)}`);
+  }
+
+  // 2b. invoice_line has RLS disabled at the table level but IS granted
+  // (studentTools.ts needs it, always reached via a join to an
+  // already-RLS-gated invoice — see the comment above). Confirm bare
+  // enumeration of invoice_line still returns only rows whose invoice the
+  // caller could already see via invoice's own RLS -- i.e. confirm the
+  // grant does not become a bypass just because invoice_line itself has no
+  // RLS policy of its own.
+  try {
+    const acmeLines = await asStudent(ANANYA, 'select invoice_id from invoice_line');
+    const tcsLineId = '00000000-0000-0000-0000-0000000000d2';
+    const leaksTcs = acmeLines.some((r) => r.invoice_id === tcsLineId);
+    console.log(
+      `[${!leaksTcs ? 'ok' : '!!'}] invoice_line grant does not leak TCS's line via bare select: ${!leaksTcs} (${acmeLines.length} row(s) visible)`
+    );
+    if (leaksTcs) failures++;
+  } catch (err) {
+    console.log(`[!!] invoice_line check errored unexpectedly: ${err.message.slice(0, 80)}`);
+    failures++;
   }
 
   // 3. Ananya sees her own enrollment.
