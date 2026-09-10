@@ -3,10 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+// /trace has no page of its own -- only /trace/[leadId] is a real route
+// (see src/app/trace/[leadId]/page.tsx). Point the nav at the seeded
+// Acme lead so "Traceability" always lands somewhere real; the dashboard's
+// per-batch "Trace →" links are the primary way into other leads.
+const ACME_LEAD_ID = "00000000-0000-0000-0000-0000000000e1";
+
 const CORE_ITEMS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/collections", label: "Collections" },
-  { href: "/trace", label: "Traceability" },
+  { href: `/trace/${ACME_LEAD_ID}`, label: "Traceability" },
   { href: "/pipeline", label: "Run lifecycle" },
 ];
 
