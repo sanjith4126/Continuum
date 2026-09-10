@@ -25,12 +25,16 @@ If a change would break "revenue and cost meet on `batch_id`", it's wrong.
   demo data in `db/seed.sql`. pgvector is optional (lead dedup) — don't block on it.
 - **ORM/migrations:** Drizzle ORM (introspect the existing SQL; don't fight it).
 - **App:** Next.js (App Router) + React + TypeScript. Charts with Recharts.
-- **AI:** Groq (OpenAI-compatible chat completions endpoint, Llama 3.3 70B)
+- **AI:** Groq (OpenAI-compatible chat completions endpoint, `openai/gpt-oss-20b`)
   for the two assistants (see Scope) — a deliberate deviation from an earlier
-  Anthropic-API plan, confirmed with the project owner. Each assistant has a
-  primary + fallback API key so a rate-limited key doesn't take a live demo
-  down. Text-to-SQL is restricted to read-only views; typed tool calls for
-  the safe paths.
+  Anthropic-API plan, confirmed with the project owner. (An earlier choice of
+  `llama-3.3-70b-versatile` 404'd — not available on this account's model
+  catalog; `gpt-oss-20b` was verified live for SQL generation before use.) It
+  is a reasoning model — it emits a hidden `reasoning` field before the real
+  `content`, so calls need a generous `max_tokens` budget or they can come
+  back empty. Each assistant has a primary + fallback API key so a
+  rate-limited key doesn't take a live demo down. Text-to-SQL is restricted
+  to read-only views; typed tool calls for the safe paths.
 
 ## Scope — build in this order, cut from the bottom
 IN (must work, end to end, for the demo):

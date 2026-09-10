@@ -61,11 +61,14 @@ short. Each phase has a **kickoff prompt** you can paste into Claude Code / Code
 - A read-only DB role (`continuum_ai`) with SELECT only on the whitelisted views,
   no grants on any base table. Empirically verified, not just declared — see
   `scripts/setup-ai-role.js`.
-- Endpoint: NL question → **Groq** (OpenAI-compatible chat completions, Llama 3.3
-  70B — a deliberate deviation from an earlier Anthropic-API plan, confirmed with
-  the project owner) generates SQL constrained to those views → validated →
-  run it as `continuum_ai` → return answer + the SQL + a trace link + an Excel
-  export (SheetJS).
+- Endpoint: NL question → **Groq** (OpenAI-compatible chat completions,
+  `openai/gpt-oss-20b` — a deliberate deviation from an earlier Anthropic-API
+  plan, confirmed with the project owner; the original `llama-3.3-70b-versatile`
+  choice 404'd, not present in this account's model catalog) generates SQL
+  constrained to those views → validated → run it as `continuum_ai` → return
+  answer + the SQL + a trace link + an Excel export (SheetJS). gpt-oss-20b is
+  a reasoning model (hidden `reasoning` tokens before `content`), so calls use
+  a generous `max_tokens` budget (800) to avoid coming back empty.
 - Two demo questions ("which batches lost money this quarter?", "what's our total
   net profit?") bypass the model and the SQL validator entirely — their SQL is a
   fixed, hand-written constant, executed directly and formatted from live rows so

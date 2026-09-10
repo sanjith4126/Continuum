@@ -7,7 +7,18 @@
 // have been updated to describe this as the actual provider.
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL = "llama-3.3-70b-versatile";
+
+// llama-3.3-70b-versatile was the original choice but returned a live 404
+// ("does not exist or you do not have access to it") against this
+// project's Groq keys/catalog — Groq's available model list had moved on.
+// openai/gpt-oss-20b was chosen instead after a live comparison against
+// openai/gpt-oss-120b: both are reasoning models (they emit a hidden
+// `reasoning` field before `content` and need a generous max_tokens budget
+// to leave room for both), 20b answered a real SQL-generation question
+// correctly in ~730ms. If this 404s again on a fresh Groq account, run
+// `GET https://api.groq.com/openai/v1/models` with the key to see what's
+// actually available before assuming the code is broken.
+const MODEL = "openai/gpt-oss-20b";
 
 export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
@@ -46,9 +57,18 @@ async function callGroq(apiKey: string, messages: ChatMessage[], maxTokens: numb
   }
 
   const json = await res.json();
-  const content = json.choices?.[0]?.message?.content;
+  const choice = json.choices?.[0];
+  const content = choice?.message?.content;
   if (typeof content !== "string") {
     throw new GroqError("Groq returned no content");
+  }
+  // gpt-oss models are reasoning models: they spend tokens on a hidden
+  // `reasoning` field before `content`. If max_tokens is too tight, content
+  // comes back as "" (finish_reason "length") rather than throwing — that
+  // would otherwise surface as a silent empty answer instead of a clear
+  // error, so treat it the same as missing content.
+  if (content.trim() === "" && choice?.finish_reason === "length") {
+    throw new GroqError("Groq ran out of tokens before producing a visible answer (reasoning-only output)");
   }
   return content;
 }

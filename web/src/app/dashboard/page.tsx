@@ -45,6 +45,12 @@ export default async function DashboardPage({
             >
               Run lifecycle
             </Link>
+            <Link
+              href="/consultant"
+              className="text-sm text-neutral-500 hover:text-neutral-900"
+            >
+              Ask the consultant
+            </Link>
             <Suspense fallback={null}>
               <AsOfControl />
             </Suspense>
