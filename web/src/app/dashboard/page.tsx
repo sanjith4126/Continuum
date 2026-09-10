@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/auth";
 import { Suspense } from "react";
 import { AppShell } from "@/components/AppShell";
 import { KpiCard } from "@/components/KpiCard";
@@ -5,13 +6,16 @@ import { BatchPnlTable } from "@/components/BatchPnlTable";
 import { AsOfControl } from "./AsOfControl";
 import { getBatchPnl, getBatchPnlAsOf, getDashboardKpis } from "@/lib/queries";
 import { formatINR } from "@/lib/format";
+import { isDate } from "@/lib/validation";
 
 export default async function DashboardPage({
   searchParams,
 }: {
   searchParams: Promise<{ asOf?: string }>;
 }) {
-  const { asOf } = await searchParams;
+  await requireUser("dashboard");
+  const { asOf: requestedDate } = await searchParams;
+  const asOf = isDate(requestedDate) ? requestedDate : undefined;
 
   const [kpis, batchRows] = await Promise.all([
     getDashboardKpis(),
@@ -23,7 +27,7 @@ export default async function DashboardPage({
   return (
     <AppShell breadcrumb="Management Overview">
       <div className="mx-auto max-w-6xl px-6 py-8">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-(--color-on-surface)">
               Management Overview
@@ -37,6 +41,8 @@ export default async function DashboardPage({
           </Suspense>
         </div>
 
+        {requestedDate && !asOf && <p role="alert" className="mt-4 text-sm text-(--color-loss-600)">Invalid date. Showing current results.</p>}
+        {asOf && <p className="mt-4 text-sm text-(--color-outline)">KPI cards show current totals. The batch table shows the selected date through end of day (India time).</p>}
         <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard label="Revenue" value={formatINR(kpis.revenue)} />
           <KpiCard label="Collected" value={formatINR(kpis.collected)} />

@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { formatINR } from "@/lib/format";
 import type { BatchPnlRow } from "@/lib/queries";
-import { StatusChip } from "./StatusChip";
 
 export function BatchPnlTable({ rows }: { rows: BatchPnlRow[] }) {
   const maxAbs = Math.max(1, ...rows.map((r) => Math.abs(Number(r.netProfit))));
 
   return (
-    <div className="overflow-hidden rounded-lg border border-(--color-outline-variant) bg-(--color-surface-container-lowest)">
+    <div className="overflow-x-auto rounded-lg border border-(--color-outline-variant) bg-(--color-surface-container-lowest)">
       <table className="w-full border-collapse text-left">
         <thead>
           <tr className="h-8 border-b border-(--color-outline-variant) bg-(--color-surface)">

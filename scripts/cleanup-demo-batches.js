@@ -2,7 +2,7 @@
 // pipeline write path, and everything that cascades from them, so the DB
 // matches the clean Acme/TCS seed state (net profit = 70000) that CLAUDE.md,
 // the dashboard, and the AI consultant's cached answer all assume.
-require('dotenv').config();
+require('dotenv').config({ path: 'web/.env.local' });
 const { Client } = require('pg');
 
 const BATCH_NAME_PATTERN = 'Demo Corp%';

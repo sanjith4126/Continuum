@@ -1,13 +1,11 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
 
 export function AsOfControl() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentAsOf = searchParams.get("asOf") ?? "";
-  const [value, setValue] = useState(currentAsOf);
 
   function apply(nextValue: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -24,15 +22,14 @@ export function AsOfControl() {
       <span className="text-[12px] text-(--color-outline)">As of</span>
       <input
         type="date"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onBlur={() => apply(value)}
+        aria-label="Historical date"
+        value={currentAsOf}
+        onChange={(e) => apply(e.target.value)}
         className="bg-transparent font-(family-name:--font-data) text-[12px] text-(--color-on-surface) outline-none"
       />
       {currentAsOf && (
         <button
           onClick={() => {
-            setValue("");
             apply("");
           }}
           className="text-[11px] text-(--color-accent-500) hover:underline"

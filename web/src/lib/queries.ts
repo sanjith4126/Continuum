@@ -1,5 +1,7 @@
 import { sql, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
+import { requireUser } from "./auth";
+import { isDate, UUID_PATTERN } from "./validation";
 import {
   batchPnl,
   dashboardKpis,
@@ -29,11 +31,13 @@ export type BatchPnlRow = {
 };
 
 export async function getDashboardKpis(): Promise<DashboardKpis> {
+  await requireUser("dashboard");
   const rows = await db.select().from(dashboardKpis);
   return rows[0] as DashboardKpis;
 }
 
 export async function getBatchPnl(): Promise<BatchPnlRow[]> {
+  await requireUser("dashboard");
   const rows = await db
     .select({
       batchId: batchPnl.batchId,
@@ -51,10 +55,14 @@ export async function getBatchPnl(): Promise<BatchPnlRow[]> {
 
 // batch_pnl_asof(as_of timestamptz) is a SQL function, not a view — call it directly.
 export async function getBatchPnlAsOf(asOf: string): Promise<BatchPnlRow[]> {
+  await requireUser("dashboard");
+  if (!isDate(asOf)) throw new Error("Invalid historical date.");
   const result = await db.execute(
-    sql`select p.batch_id, p.name, p.revenue, p.cost, p.net_profit, b.source_lead_id
-        from batch_pnl_asof(${asOf}::timestamptz) p
+    sql`select p.batch_id as "batchId", p.name, p.revenue, p.cost,
+               p.net_profit as "netProfit", b.source_lead_id as "sourceLeadId"
+        from batch_pnl_asof((${asOf}::date + interval '1 day' - interval '1 microsecond') at time zone 'Asia/Kolkata') p
         left join batch b on b.id = p.batch_id
+        where b.created_at <= ((${asOf}::date + interval '1 day' - interval '1 microsecond') at time zone 'Asia/Kolkata')
         order by p.net_profit`
   );
   return result.rows as unknown as BatchPnlRow[];
@@ -73,6 +81,7 @@ export type CollectionsAgingRow = {
 };
 
 export async function getCollectionsAging(): Promise<CollectionsAgingRow[]> {
+  await requireUser("finance");
   const rows = await db
     .select({
       paymentId: collectionsAging.paymentId,
@@ -148,8 +157,17 @@ export type LeadOutcome = {
 };
 
 export async function getLeadToOutcome(leadId: string): Promise<LeadOutcome | null> {
+  await requireUser("trace");
+  if (!UUID_PATTERN.test(leadId)) return null;
   const result = await db.execute(
-    sql`select lead_to_outcome(${leadId}::uuid) as outcome`
+    sql`select jsonb_set(jsonb_set(lead_to_outcome(${leadId}::uuid), '{invoices}',
+          (select coalesce(jsonb_agg(to_jsonb(i)), '[]'::jsonb)
+           from invoice i join batch b on b.id = i.batch_id
+           where b.source_lead_id = ${leadId}::uuid)), '{events}',
+          (select coalesce(jsonb_agg(to_jsonb(le) order by le.occurred_at, le.id), '[]'::jsonb)
+           from ledger_event le
+           where le.batch_id in (select id from batch where source_lead_id = ${leadId}::uuid)
+              or (le.entity_type = 'enquiry' and le.entity_id = ${leadId}::uuid))) as outcome`
   );
   const outcome = (result.rows[0] as { outcome: LeadOutcome } | undefined)?.outcome;
   if (!outcome || !outcome.lead) return null;
@@ -157,6 +175,7 @@ export async function getLeadToOutcome(leadId: string): Promise<LeadOutcome | nu
 }
 
 export async function getPartyById(partyId: string) {
+  await requireUser("trace");
   const rows = await db.select().from(party).where(eq(party.id, partyId));
   return rows[0] ?? null;
 }
@@ -165,6 +184,7 @@ export async function getPartyById(partyId: string) {
 // in src/app/api/assistant/route.ts. Not an auth listing; just the seeded
 // students to choose "who's asking" from in a project with no real login.
 export async function listStudents() {
+  await requireUser("accounts");
   const rows = await db.execute(
     sql`select id, name from party where 'student' = any(roles) order by name`
   );
@@ -172,16 +192,19 @@ export async function listStudents() {
 }
 
 export async function getPaymentsForInvoices(invoiceIds: string[]) {
+  await requireUser("trace");
   if (invoiceIds.length === 0) return [];
   return db.select().from(payment).where(inArray(payment.invoiceId, invoiceIds));
 }
 
 export async function getExpensesForBatches(batchIds: string[]) {
+  await requireUser("trace");
   if (batchIds.length === 0) return [];
   return db.select().from(expense).where(inArray(expense.batchId, batchIds));
 }
 
 export async function getTrainerPaymentsForBatches(batchIds: string[]) {
+  await requireUser("trace");
   if (batchIds.length === 0) return [];
   return db
     .select()

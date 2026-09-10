@@ -48,3 +48,17 @@ body {
   color: var(--foreground);
   font-family: var(--font-ui);
 }
+
+.field { display:flex; flex-direction:column; gap:8px; font-size:13px; font-weight:500; }
+.field input,.field select,.field textarea { width:100%; min-width:0; background:white; border:1px solid #cbd5e1; border-radius:6px; padding:10px 12px; font-size:14px; font-weight:400; }
+.field input:focus,.field select:focus,.field textarea:focus { outline:2px solid #2563eb; outline-offset:2px; }
+.primary { display:inline-flex; justify-content:center; align-items:center; border-radius:6px; padding:11px 18px; background:#1e40af; color:white; font-size:13px; font-weight:600; }
+.primary:hover { background:#1e3a8a; }
+.primary:disabled { opacity:.5; cursor:wait; }
+.eyebrow { font-family:var(--font-data); font-size:11px; letter-spacing:.15em; color:#64748b; }
+.panel { border:1px solid #d1d5db; border-radius:10px; padding:22px; background:white; }
+.data-table { width:100%; border-collapse:collapse; font-size:13px; text-align:left; }
+.data-table th { color:#64748b; font-size:11px; text-transform:uppercase; letter-spacing:.05em; }
+.data-table th,.data-table td { padding:12px; border-bottom:1px solid #eef2f6; vertical-align:top; }
+button,a,input,select,textarea { touch-action:manipulation; }
+button:focus-visible,a:focus-visible { outline:2px solid #2563eb; outline-offset:3px; }

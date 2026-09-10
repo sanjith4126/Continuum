@@ -4,7 +4,7 @@ import type { CollectionsAgingRow } from "@/lib/queries";
 
 export function CollectionsTable({ rows }: { rows: CollectionsAgingRow[] }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-(--color-outline-variant) bg-(--color-surface-container-lowest)">
+    <div className="overflow-x-auto rounded-lg border border-(--color-outline-variant) bg-(--color-surface-container-lowest)">
       <table className="w-full border-collapse text-left">
         <thead>
           <tr className="h-8 border-b border-(--color-outline-variant) bg-(--color-surface)">

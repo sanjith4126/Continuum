@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-
-export default function Home() {
-  redirect("/dashboard");
-}
+import { requireUser } from "@/lib/auth";
+import { homeFor } from "@/lib/permissions";
+export default async function Home(){const user=await requireUser();redirect(homeFor(user.role));}

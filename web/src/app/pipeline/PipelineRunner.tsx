@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import Link from "next/link";
 import { runDemoPipeline } from "@/lib/demo";
 import { formatINR } from "@/lib/format";
@@ -8,6 +8,7 @@ import { formatINR } from "@/lib/format";
 type Result = Awaited<ReturnType<typeof runDemoPipeline>>;
 
 export function PipelineRunner() {
+  const requestId = useRef<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -16,7 +17,8 @@ export function PipelineRunner() {
     setError(null);
     startTransition(async () => {
       try {
-        setResult(await runDemoPipeline());
+        requestId.current ??= crypto.randomUUID();
+        setResult(await runDemoPipeline(requestId.current));
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       }
@@ -27,7 +29,7 @@ export function PipelineRunner() {
     <div>
       <button
         onClick={run}
-        disabled={isPending}
+        disabled={isPending || !!result}
         className="rounded-md bg-(--color-accent-500) px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-(--color-accent-600) disabled:opacity-50"
       >
         {isPending ? "Running…" : "Run the lifecycle"}
@@ -45,7 +47,7 @@ export function PipelineRunner() {
             {result.steps.map((s, i) => (
               <li
                 key={i}
-                className="flex h-10 items-center gap-4 border-b border-(--color-surface-container-low) px-4 last:border-0"
+                className="flex min-h-10 flex-wrap items-center gap-2 border-b border-(--color-surface-container-low) px-4 py-2 last:border-0 sm:gap-4"
               >
                 <span className="w-5 shrink-0 font-(family-name:--font-data) text-[12px] text-(--color-outline)">
                   {i + 1}
@@ -60,7 +62,7 @@ export function PipelineRunner() {
             ))}
           </ol>
 
-          <div className="flex items-center justify-between rounded-lg border border-(--color-outline-variant) bg-(--color-surface-container-lowest) p-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-(--color-outline-variant) bg-(--color-surface-container-lowest) p-4">
             <div>
               <div className="font-(family-name:--font-data) text-[11px] uppercase tracking-wider text-(--color-outline)">
                 Net profit for the new batch

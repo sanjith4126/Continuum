@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
+export const dynamic = "force-dynamic";
+
 const inter = Inter({
   variable: "--font-ui",
   subsets: ["latin"],

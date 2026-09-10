@@ -1,8 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
+import { eq, sql } from "drizzle-orm";
+import { authorizedTransaction, currentActor, type Tx } from "./transaction";
+import { requireMoney, requireText, requireUuid, isDate } from "./validation";
 import {
   party,
   enquiry,
@@ -20,7 +21,7 @@ import {
 // Money events carry batch_id and a signed amount (+revenue, -cost) so the
 // as-of P&L in batch_pnl_asof() can be reconstructed from the log.
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 
 async function appendEvent(
   tx: Tx,
@@ -43,6 +44,7 @@ async function appendEvent(
   }
 ) {
   await tx.insert(ledgerEvent).values({
+    actorId: currentActor(),
     eventType: event.eventType,
     entityType: event.entityType,
     entityId: event.entityId ?? null,
@@ -60,7 +62,11 @@ export async function createLead(input: {
   source?: string;
   sourceCost?: string;
 }) {
-  return db.transaction(async (tx) => {
+  requireText(input.name, "name");
+  if (input.kind !== undefined && !["person", "org"].includes(input.kind)) throw new Error("Invalid party kind.");
+  if (input.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email)) throw new Error("Invalid email.");
+  requireMoney(input.sourceCost ?? "0", "source cost", true);
+  return authorizedTransaction("crm", async (tx) => {
     const [p] = await tx
       .insert(party)
       .values({
@@ -79,6 +85,7 @@ export async function createLead(input: {
         source: input.source ?? null,
         sourceCost: input.sourceCost ?? "0",
         stage: "new",
+        ownerId: currentActor(),
       })
       .returning();
 
@@ -95,7 +102,11 @@ export async function createLead(input: {
 }
 
 export async function convertLead(input: { enquiryId: string }) {
-  return db.transaction(async (tx) => {
+  requireUuid(input.enquiryId, "enquiry ID");
+  return authorizedTransaction("crm", async (tx) => {
+    const [existing] = await tx.select().from(enquiry).where(eq(enquiry.id, input.enquiryId)).for("update");
+    if (!existing) throw new Error("Lead not found.");
+    if (existing.stage === "won") return { enquiryId: existing.id };
     const [e] = await tx
       .update(enquiry)
       .set({ stage: "won" })
@@ -124,7 +135,18 @@ export async function createBatch(input: {
   endsOn?: string;
   status?: "planned" | "running" | "completed" | "cancelled";
 }) {
-  return db.transaction(async (tx) => {
+  requireUuid(input.courseId, "course ID");
+  requireText(input.name, "batch name");
+  if (input.sourceLeadId) requireUuid(input.sourceLeadId, "lead ID");
+  if (input.trainerId) requireUuid(input.trainerId, "trainer ID");
+  if (input.startsOn && !isDate(input.startsOn)) throw new Error("Invalid start date.");
+  if (input.endsOn && !isDate(input.endsOn)) throw new Error("Invalid end date.");
+  if (input.startsOn && input.endsOn && input.endsOn < input.startsOn) throw new Error("End date must follow start date.");
+  return authorizedTransaction("trainingWrite", async (tx) => {
+    if (input.trainerId) {
+      const [trainer] = await tx.select().from(party).where(eq(party.id,input.trainerId));
+      if (!trainer?.roles.includes("trainer")) throw new Error("Trainer not found.");
+    }
     const [b] = await tx
       .insert(batch)
       .values({
@@ -156,7 +178,11 @@ export async function enrollStudent(input: {
   batchId: string;
   studentId: string;
 }) {
-  return db.transaction(async (tx) => {
+  requireUuid(input.batchId, "batch ID");
+  requireUuid(input.studentId, "student ID");
+  return authorizedTransaction("trainingWrite", async (tx) => {
+    const [student] = await tx.select().from(party).where(eq(party.id, input.studentId));
+    if (!student?.roles?.includes("student")) throw new Error("Student not found.");
     const [en] = await tx
       .insert(enrollment)
       .values({ batchId: input.batchId, studentId: input.studentId })
@@ -183,7 +209,14 @@ export async function raiseInvoice(input: {
   discount?: string;
   gstRate?: string;
 }) {
-  return db.transaction(async (tx) => {
+  requireUuid(input.partyId, "party ID");
+  requireUuid(input.batchId, "batch ID");
+  requireMoney(input.amount, "invoice amount");
+  requireMoney(input.discount ?? "0", "discount", true);
+  requireMoney(input.gstRate ?? "18", "GST rate", true);
+  if (Number(input.discount ?? 0) > Number(input.amount)) throw new Error("Discount exceeds invoice amount.");
+  if (Number(input.gstRate ?? 18) > 100) throw new Error("Invalid GST rate.");
+  return authorizedTransaction("finance", async (tx) => {
     const [inv] = await tx
       .insert(invoice)
       .values({
@@ -239,7 +272,21 @@ export async function recordPayment(input: {
   dueOn?: string;
   paid?: boolean;
 }) {
-  return db.transaction(async (tx) => {
+  requireUuid(input.invoiceId, "invoice ID");
+  requireUuid(input.batchId, "batch ID");
+  requireMoney(input.amount, "payment amount");
+  if (input.paid !== undefined && typeof input.paid !== "boolean") throw new Error("Invalid payment state.");
+  if (input.dueOn && !isDate(input.dueOn)) throw new Error("Invalid due date.");
+  return authorizedTransaction("finance", async (tx) => {
+    const [inv] = await tx.select().from(invoice).where(eq(invoice.id, input.invoiceId)).for("update");
+    if (!inv || inv.batchId !== input.batchId) throw new Error("Invoice does not belong to this batch.");
+    if (inv.status === "void") throw new Error("Cannot pay a void invoice.");
+    const totals=await tx.execute(sql`select
+      (select coalesce(sum(amount-discount),0) from invoice_line where invoice_id=${input.invoiceId}::uuid) as invoiced,
+      (select coalesce(sum(amount),0) from payment where invoice_id=${input.invoiceId}::uuid) as allocated`);
+    if (Number(totals.rows[0].allocated)+Number(input.amount)>Number(totals.rows[0].invoiced)+0.001) {
+      throw new Error("This exceeds the unallocated invoice balance. Settle an existing installment instead.");
+    }
     const [pay] = await tx
       .insert(payment)
       .values({
@@ -259,8 +306,15 @@ export async function recordPayment(input: {
       // cash movement, not revenue — revenue was already booked on the invoice
       // line, so this stays out of the signed P&L amount to avoid double count
       amount: null,
-      payload: { amount: input.amount, method: input.method ?? "bank" },
+      payload: { amount: input.amount, method: input.method ?? "bank", paid: input.paid !== false, dueOn: input.dueOn ?? null },
     });
+
+    if (input.paid !== false) {
+      await tx.execute(sql`update invoice set status=case
+        when (select coalesce(sum(amount),0) from payment where invoice_id=${input.invoiceId}::uuid and paid_at is not null)
+          >= (select coalesce(sum(amount-discount),0) from invoice_line where invoice_id=${input.invoiceId}::uuid)
+        then 'paid'::invoice_status else 'part_paid'::invoice_status end where id=${input.invoiceId}::uuid`);
+    }
 
     revalidatePath("/dashboard");
     revalidatePath("/collections");
@@ -280,7 +334,9 @@ export async function recordExpense(input: {
   amount: string;
   vendor?: string;
 }) {
-  return db.transaction(async (tx) => {
+  requireUuid(input.batchId, "batch ID");
+  requireMoney(input.amount, "expense amount");
+  return authorizedTransaction("finance", async (tx) => {
     const [ex] = await tx
       .insert(expense)
       .values({
@@ -310,7 +366,12 @@ export async function recordTrainerPayment(input: {
   trainerId: string;
   amount: string;
 }) {
-  return db.transaction(async (tx) => {
+  requireUuid(input.batchId, "batch ID");
+  requireUuid(input.trainerId, "trainer ID");
+  requireMoney(input.amount, "trainer payment amount");
+  return authorizedTransaction("finance", async (tx) => {
+    const [trainer] = await tx.select().from(party).where(eq(party.id, input.trainerId));
+    if (!trainer?.roles?.includes("trainer")) throw new Error("Trainer not found.");
     const [tp] = await tx
       .insert(trainerPayment)
       .values({

@@ -1,7 +1,9 @@
+import { requireUser } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
 import { ConsultantChat } from "./ConsultantChat";
 
-export default function ConsultantPage() {
+export default async function ConsultantPage() {
+  await requireUser("consultant");
   return (
     <AppShell breadcrumb="AI Consultant">
       <div className="mx-auto max-w-3xl px-6 py-8">

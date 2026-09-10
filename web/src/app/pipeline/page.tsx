@@ -1,7 +1,9 @@
+import { requireUser } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
 import { PipelineRunner } from "./PipelineRunner";
 
-export default function PipelinePage() {
+export default async function PipelinePage() {
+  await requireUser("demo");
   return (
     <AppShell breadcrumb="Run lifecycle">
       <div className="mx-auto max-w-4xl px-6 py-8">

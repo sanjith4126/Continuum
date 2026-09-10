@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import * as XLSX from "xlsx";
 
 type ConsultantResponse =
   | {
@@ -15,7 +14,7 @@ type ConsultantResponse =
   | { ok: false; message: string };
 
 const EXAMPLE_QUESTIONS = [
-  "Which batches lost money this quarter?",
+  "Which batches are currently losing money?",
   "What's our total net profit?",
   "What's outstanding in collections right now?",
 ];
@@ -51,8 +50,9 @@ export function ConsultantChat() {
     }
   }
 
-  function exportToExcel() {
+  async function exportToExcel() {
     if (!result || !result.ok || result.rows.length === 0) return;
+    const XLSX = await import("xlsx");
     const ws = XLSX.utils.json_to_sheet(result.rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Answer");
@@ -91,10 +91,12 @@ export function ConsultantChat() {
             &gt;
           </span>
           <input
+            aria-label="Business question"
+            maxLength={500}
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="Ask about batch profit, collections, or totals…"
-            className="h-8 flex-1 bg-transparent font-(family-name:--font-data) text-[13px] text-(--color-on-surface) outline-none placeholder:text-(--color-outline)"
+            className="h-8 min-w-0 flex-1 bg-transparent font-(family-name:--font-data) text-[13px] text-(--color-on-surface) outline-none placeholder:text-(--color-outline)"
           />
           <button
             type="submit"
@@ -216,7 +218,7 @@ export function ConsultantChat() {
                     href="/dashboard"
                     className="rounded-md border border-(--color-outline-variant) px-3 py-1.5 text-[13px] text-(--color-on-surface) hover:bg-(--color-surface-container-low)"
                   >
-                    Open in traceability →
+                    View batches →
                   </Link>
                 )}
                 <button

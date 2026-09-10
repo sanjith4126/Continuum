@@ -38,6 +38,7 @@ function isRetryable(status: number) {
 
 async function callGroq(apiKey: string, messages: ChatMessage[], maxTokens: number) {
   const res = await fetch(GROQ_URL, {
+    signal: AbortSignal.timeout(15000),
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,

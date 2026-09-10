@@ -1,7 +1,8 @@
 "use server";
 
 import { sql } from "drizzle-orm";
-import { db } from "@/db";
+import { authorizedTransaction } from "./transaction";
+import { requireUuid } from "./validation";
 import {
   createLead,
   convertLead,
@@ -21,23 +22,32 @@ export type PipelineStep = {
 // Walks ONE full journey — lead to margin — using the same server actions the
 // real UI would call. Every step appends its ledger_event, so the new batch
 // shows up in batch_pnl (and in batch_pnl_asof once its dates pass).
-export async function runDemoPipeline(): Promise<{
+export async function runDemoPipeline(requestId: string): Promise<{
   steps: PipelineStep[];
   leadId: string;
   batchId: string;
   netProfit: string;
 }> {
+  requireUuid(requestId, "request ID");
+  return authorizedTransaction("demo", async (tx, user) => {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${user.id + requestId},0))`);
+  const previous=await tx.execute(sql`select result from operation_request where user_id=${user.id}::uuid and request_id=${requestId}::uuid`);
+  if(previous.rows[0]) return previous.rows[0].result as {steps:PipelineStep[];leadId:string;batchId:string;netProfit:string};
   const stamp = new Date().toISOString().slice(11, 19);
   const steps: PipelineStep[] = [];
 
   // reuse seeded course / trainer / student so we don't invent an LMS catalogue
-  const course = await db.execute(sql`select id, title from course limit 1`);
-  const trainer = await db.execute(
+  const course = await tx.execute(sql`select id, title from course limit 1`);
+  const trainer = await tx.execute(
     sql`select id, name from party where 'trainer' = any(roles) limit 1`
   );
-  const student = await db.execute(
+  const student = await tx.execute(
     sql`select id, name from party where 'student' = any(roles) limit 1`
   );
+
+  if (!course.rows.length || !trainer.rows.length || !student.rows.length) {
+    throw new Error("The demo requires a course, trainer, and student. Set up the demo data first.");
+  }
 
   const courseId = (course.rows[0] as { id: string }).id;
   const trainerId = (trainer.rows[0] as { id: string }).id;
@@ -124,12 +134,15 @@ export async function runDemoPipeline(): Promise<{
   });
   steps.push({ step: "recordTrainerPayment", detail: "₹90,000" });
 
-  const pnl = await db.execute(
+  const pnl = await tx.execute(
     sql`select net_profit from batch_pnl where batch_id = ${b.batchId}::uuid`
   );
   const netProfit = String(
     (pnl.rows[0] as { net_profit: string } | undefined)?.net_profit ?? "0"
   );
 
-  return { steps, leadId: lead.enquiryId, batchId: b.batchId, netProfit };
+  const result={ steps, leadId: lead.enquiryId, batchId: b.batchId, netProfit };
+  await tx.execute(sql`insert into operation_request(user_id,request_id,result) values(${user.id}::uuid,${requestId}::uuid,${JSON.stringify(result)}::jsonb)`);
+  return result;
+  });
 }

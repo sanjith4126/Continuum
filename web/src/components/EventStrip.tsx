@@ -29,9 +29,9 @@ export function EventStrip({ events }: { events: LeadOutcomeEvent[] }) {
           <li key={event.id} className="flex gap-2.5">
             <div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-(--color-outline-variant)" />
             <div className="min-w-0">
-              <div className="flex items-baseline gap-2">
+              <div className="flex flex-wrap items-baseline gap-2">
                 <span className="font-(family-name:--font-data) text-[12px] font-medium text-(--color-on-surface)">
-                  {event.event_type}
+                  {event.event_type === "payment.received" && event.payload.paid === false ? "payment.scheduled" : event.event_type}
                 </span>
                 {event.amount !== null && (
                   <span

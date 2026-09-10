@@ -71,6 +71,7 @@ async function runAsStudent<T>(
     await client.query("begin");
     await client.query("set local role continuum_app");
     await client.query("set local transaction read only");
+    await client.query("set local statement_timeout = 5000");
     await client.query("set local app.user_role = 'student'");
     await client.query("select set_config('app.party_id', $1, true)", [studentId]);
     const result = await fn(client);

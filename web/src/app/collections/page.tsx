@@ -1,9 +1,11 @@
+import { requireUser } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
 import { CollectionsTable } from "@/components/CollectionsTable";
 import { getCollectionsAging } from "@/lib/queries";
 import { formatINR } from "@/lib/format";
 
 export default async function CollectionsPage() {
+  await requireUser("finance");
   const rows = await getCollectionsAging();
   const totalAtRisk = rows.reduce((sum, r) => sum + Number(r.rupeesAtRisk), 0);
 
