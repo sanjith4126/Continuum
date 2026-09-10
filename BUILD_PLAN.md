@@ -58,30 +58,59 @@ short. Each phase has a **kickoff prompt** you can paste into Claude Code / Code
 > view, showing outstanding installments ranked by rupees_at_risk with days overdue."
 
 ## Phase 5 — the AI data consultant (STRETCH, high wow)
-- A read-only DB role (`continuum_ai`) with SELECT only on the whitelisted views.
-- Endpoint: NL question → Anthropic API generates SQL constrained to those views (or
-  picks a typed tool: get_batch_pnl, list_outstanding, student_schedule,
-  lead_to_outcome) → run it as `continuum_ai` → return answer + the SQL + a trace
-  link + an Excel export (SheetJS).
-- Guardrails: validate/parse the SQL is read-only before executing; cap rows; never
-  expose base tables or PII. Pre-cache the two demo prompts as a fallback.
+- A read-only DB role (`continuum_ai`) with SELECT only on the whitelisted views,
+  no grants on any base table. Empirically verified, not just declared — see
+  `scripts/setup-ai-role.js`.
+- Endpoint: NL question → **Groq** (OpenAI-compatible chat completions, Llama 3.3
+  70B — a deliberate deviation from an earlier Anthropic-API plan, confirmed with
+  the project owner) generates SQL constrained to those views → validated →
+  run it as `continuum_ai` → return answer + the SQL + a trace link + an Excel
+  export (SheetJS).
+- Two demo questions ("which batches lost money this quarter?", "what's our total
+  net profit?") bypass the model and the SQL validator entirely — their SQL is a
+  fixed, hand-written constant, executed directly and formatted from live rows so
+  the answer can never go stale, but it never touches Groq or the validator. This
+  keeps the demo working even if the API is down or slow.
+- Guardrails (defence-in-depth; the `continuum_ai` grants are the real boundary —
+  see `scripts/setup-ai-role.js`'s 9 pass/fail checks):
+  1. Regex validation (`web/src/lib/ai/sqlGuard.ts`): single bare SELECT only (no
+     CTEs, no multi-statement, no comments), keyword denylist, a positive
+     function allowlist (only SUM/COUNT/AVG/MIN/MAX/ROUND), table allowlist
+     restricted to `batch_pnl`/`collections_aging`/`dashboard_kpis`, forced LIMIT.
+  2. `EXPLAIN (FORMAT JSON)` the query as `continuum_ai` before running it, using
+     Postgres's own parser as a parse/cost gate. This does NOT re-check relation
+     names — EXPLAIN on a query against a view reports the view's *underlying
+     base tables* as Relation Name nodes, not the view name, so a second
+     relation whitelist at this layer would reject every legitimate query
+     (verified live against Neon). That check belongs to the regex layer's
+     FROM/JOIN allowlist and to the DB grants.
+  3. Runs as `continuum_ai`, inside `transaction read only`, with a 5s statement
+     timeout, in a transaction that always rolls back (nothing to commit, and it
+     guarantees the role never survives past one call on a pooled connection).
+  4. One bounded self-correction retry on rejection (reason fed back to the
+     model once); a second failure fails cleanly to the user.
 
-> **Kickoff prompt:** "Build `/consultant`: a chat box that sends the question to the
-> Anthropic API with a system prompt describing ONLY these read-only views
-> (dashboard_kpis, batch_pnl, collections_aging) and their columns, asking it to
-> return a single read-only SELECT. Validate the SQL is a single SELECT against the
-> whitelist (reject anything else), run it as the read-only `continuum_ai` role, and
-> render: the answer table, the SQL in a code block, a 'View trace' link, and an
-> 'Export to Excel' button (SheetJS). Cache answers for the two demo questions."
+> **Kickoff prompt:** "Build `/consultant`: a chat box that sends the question to
+> Groq with a system prompt describing ONLY these read-only views (dashboard_kpis,
+> batch_pnl, collections_aging) and their columns, allowing only
+> SUM/COUNT/AVG/MIN/MAX/ROUND, asking it to return a single read-only SELECT.
+> Validate the SQL is a single SELECT against the whitelist (reject anything
+> else), EXPLAIN it as continuum_ai first, then run it as the read-only
+> `continuum_ai` role, and render: the answer table, the SQL in a code block, a
+> 'View trace' link, and an 'Export to Excel' button (SheetJS). The two demo
+> questions bypass the model and validator entirely via a fixed-SQL cache."
 
 ## Phase 6 — the student assistant (STRETCH)
 - Same pattern, but the session sets `app.user_role='student'` and `app.party_id`, so
   RLS scopes every read to that student. Typed tools only: student_schedule, balance.
+  No free-form SQL at all — Groq's only job is routing to one of the two typed
+  tools; `party_id` comes from the session, never from the model or the question.
 
 > **Kickoff prompt:** "Build `/assistant` for a signed-in student. Set
-> `app.user_role='student'` and `app.party_id` per request so RLS applies. Answer
-> 'when's my next class' and 'what's my balance' via typed read-only queries scoped
-> to that student. Never allow free-form SQL here."
+> `app.user_role='student'` and `app.party_id` per request so RLS applies. Use Groq
+> only to route between two typed read-only queries (student_schedule, balance) —
+> answer 'when's my next class' and 'what's my balance' scoped to that student.
+> Never allow free-form SQL here."
 
 ## Phase 7 — polish + demo hardening
 - Seed looks realistic; show the arithmetic live (don't fake charts).

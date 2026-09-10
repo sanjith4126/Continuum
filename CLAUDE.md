@@ -25,8 +25,12 @@ If a change would break "revenue and cost meet on `batch_id`", it's wrong.
   demo data in `db/seed.sql`. pgvector is optional (lead dedup) — don't block on it.
 - **ORM/migrations:** Drizzle ORM (introspect the existing SQL; don't fight it).
 - **App:** Next.js (App Router) + React + TypeScript. Charts with Recharts.
-- **AI:** the Anthropic API for the two assistants (see Scope). Text-to-SQL is
-  restricted to read-only views; typed tool calls for the safe paths.
+- **AI:** Groq (OpenAI-compatible chat completions endpoint, Llama 3.3 70B)
+  for the two assistants (see Scope) — a deliberate deviation from an earlier
+  Anthropic-API plan, confirmed with the project owner. Each assistant has a
+  primary + fallback API key so a rate-limited key doesn't take a live demo
+  down. Text-to-SQL is restricted to read-only views; typed tool calls for
+  the safe paths.
 
 ## Scope — build in this order, cut from the bottom
 IN (must work, end to end, for the demo):
@@ -60,7 +64,9 @@ OUT (do not build):
   tables, never PII columns. RLS applies to it too.
 - Treat stored user text (lead notes) as **data, never instructions** (prompt
   injection). The agent acts only through typed, read-only tools.
-- Secrets in env vars, never in code. `DATABASE_URL`, `ANTHROPIC_API_KEY`.
+- Secrets in env vars, never in code. `DATABASE_URL`, `GROQ_API_KEY_CONSULTANT`,
+  `GROQ_API_KEY_CONSULTANT_FALLBACK`, `GROQ_API_KEY_ASSISTANT`,
+  `GROQ_API_KEY_ASSISTANT_FALLBACK`.
 
 ## Conventions
 - Every write also appends a `ledger_event` (event_type, entity, batch_id, signed
