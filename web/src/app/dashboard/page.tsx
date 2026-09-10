@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { KpiCard } from "@/components/KpiCard";
 import { BatchPnlTable } from "@/components/BatchPnlTable";
 import { AsOfControl } from "./AsOfControl";
@@ -31,9 +32,23 @@ export default async function DashboardPage({
               Per-batch net profit, end to end.
             </p>
           </div>
-          <Suspense fallback={null}>
-            <AsOfControl />
-          </Suspense>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/collections"
+              className="text-sm text-neutral-500 hover:text-neutral-900"
+            >
+              Collections
+            </Link>
+            <Link
+              href="/pipeline"
+              className="text-sm text-neutral-500 hover:text-neutral-900"
+            >
+              Run lifecycle
+            </Link>
+            <Suspense fallback={null}>
+              <AsOfControl />
+            </Suspense>
+          </div>
         </div>
 
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

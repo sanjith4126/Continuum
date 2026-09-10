@@ -63,7 +63,9 @@ export async function getBatchPnlAsOf(asOf: string): Promise<BatchPnlRow[]> {
 export type CollectionsAgingRow = {
   paymentId: string;
   partyId: string;
+  partyName: string | null;
   batchId: string;
+  batchName: string | null;
   amount: string;
   dueOn: string;
   daysOverdue: number;
@@ -72,8 +74,20 @@ export type CollectionsAgingRow = {
 
 export async function getCollectionsAging(): Promise<CollectionsAgingRow[]> {
   const rows = await db
-    .select()
+    .select({
+      paymentId: collectionsAging.paymentId,
+      partyId: collectionsAging.partyId,
+      partyName: party.name,
+      batchId: collectionsAging.batchId,
+      batchName: batch.name,
+      amount: collectionsAging.amount,
+      dueOn: collectionsAging.dueOn,
+      daysOverdue: collectionsAging.daysOverdue,
+      rupeesAtRisk: collectionsAging.rupeesAtRisk,
+    })
     .from(collectionsAging)
+    .leftJoin(party, eq(party.id, collectionsAging.partyId))
+    .leftJoin(batch, eq(batch.id, collectionsAging.batchId))
     .orderBy(sql`${collectionsAging.rupeesAtRisk} desc`);
   return rows as CollectionsAgingRow[];
 }
