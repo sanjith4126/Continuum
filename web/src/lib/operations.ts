@@ -2,7 +2,7 @@
 import { sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { authorizedTransaction } from "./transaction";
-import { requireMoney,requireText,requireUuid,isDate } from "./validation";
+import { requireMoney,requireOneOf,requireOptionalText,requireText,requireUuid,isDate } from "./validation";
 import { createLead,convertLead,createBatch,enrollStudent,raiseInvoice,recordPayment,recordExpense,recordTrainerPayment } from "./actions";
 import type { Permission } from "./permissions";
 export type FormResult={ok:boolean;message:string};
@@ -23,7 +23,10 @@ export async function submitOperation(_previous:FormResult,form:FormData):Promis
   const text=(key:string,max=200)=>{const v=get(key);requireText(v,key,max);return v;};
   const money=(key:string)=>{const v=get(key);requireMoney(v,key);return v;};
   switch(kind){
-   case "lead": await createLead({name:text("name"),kind:get("partyKind")==="person"?"person":"org",email:get("email"),phone:get("phone"),source:get("source")});break;
+   case "lead":{
+    const partyKind=get("partyKind");requireOneOf(partyKind,"party kind",["person","org"] as const);
+    await createLead({name:text("name"),kind:partyKind,email:get("email"),phone:get("phone"),source:get("source")});break;
+   }
    case "convert": await convertLead({enquiryId:uuid("enquiryId")});break;
    case "leadEdit":{
     const id=uuid("enquiryId");
@@ -31,6 +34,7 @@ export async function submitOperation(_previous:FormResult,form:FormData):Promis
     if(!found.rows[0])throw new Error("Lead not found.");
     const partyId=String(found.rows[0].party_id);
     const name=text("name");const email=get("email");const phone=get("phone");const source=get("source");
+    requireOptionalText(email,"email",254);requireOptionalText(phone,"phone",50);requireOptionalText(source,"source",100);
     if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error("Invalid email.");
     await tx.execute(sql`update party set name=${name},email=${email||null},phone=${phone||null} where id=${partyId}::uuid`);
     await tx.execute(sql`update enquiry set source=${source||null} where id=${id}::uuid`);
@@ -52,8 +56,8 @@ export async function submitOperation(_previous:FormResult,form:FormData):Promis
    }
    case "party":{
     const role=get("partyRole");if(!["student","trainer","corporate_buyer"].includes(role))throw new Error("Invalid profile role.");
-    const name=text("name");const email=get("email");if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error("Invalid email.");
-    const rows=await tx.execute(sql`insert into party(name,kind,email,phone,roles) values(${name},${role==="corporate_buyer"?"org":"person"},${email||null},${get("phone")||null},array[${role}]) returning id`);await event("party.created","party",String(rows.rows[0].id),null,{role});break;
+    const name=text("name");const email=get("email");const phone=get("phone");requireOptionalText(email,"email",254);requireOptionalText(phone,"phone",50);if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error("Invalid email.");
+    const rows=await tx.execute(sql`insert into party(name,kind,email,phone,roles) values(${name},${role==="corporate_buyer"?"org":"person"},${email||null},${phone||null},array[${role}]) returning id`);await event("party.created","party",String(rows.rows[0].id),null,{role});break;
    }
    case "course":{
     const title=text("title");const amount=money("amount");const rows=await tx.execute(sql`insert into course(title,default_price) values(${title},${amount}) returning id`);await event("course.created","course",String(rows.rows[0].id));break;
@@ -62,7 +66,7 @@ export async function submitOperation(_previous:FormResult,form:FormData):Promis
    case "enroll": await enrollStudent({batchId:uuid("batchId"),studentId:uuid("studentId")});break;
    case "batchEdit":{
     const id=uuid("batchId");
-    const name=text("name");const location=get("location");
+    const name=text("name");const location=get("location");requireOptionalText(location,"location",200);
     const startsOn=get("startsOn")||null;const endsOn=get("endsOn")||null;
     if(startsOn&&!isDate(startsOn))throw new Error("Invalid start date.");
     if(endsOn&&!isDate(endsOn))throw new Error("Invalid end date.");
@@ -81,27 +85,32 @@ export async function submitOperation(_previous:FormResult,form:FormData):Promis
     const enrollment=await tx.execute(sql`select e.batch_id,b.trainer_id from enrollment e join batch b on b.id=e.batch_id where e.id=${id}::uuid for update of e`);
     if(!enrollment.rows[0]||(user.role==="trainer"&&enrollment.rows[0].trainer_id!==user.partyId))throw new Error("Enrollment is not assigned to you.");
     const present=get("present")==="true";
-    const old=await tx.execute(sql`select id from attendance where enrollment_id=${id}::uuid and session_date=${date}::date`);
-    let attendanceId:string;
-    if(old.rows[0]){attendanceId=String(old.rows[0].id);await tx.execute(sql`update attendance set present=${present} where id=${attendanceId}::uuid`);}
-    else {const rows=await tx.execute(sql`insert into attendance(enrollment_id,session_date,present) values(${id}::uuid,${date}::date,${present}) returning id`);attendanceId=String(rows.rows[0].id);}
+    const rows=await tx.execute(sql`insert into attendance(enrollment_id,session_date,present) values(${id}::uuid,${date}::date,${present})
+      on conflict(enrollment_id,session_date) do update set present=excluded.present returning id`);
+    const attendanceId=String(rows.rows[0].id);
     await event("attendance.marked","attendance",attendanceId,String(enrollment.rows[0].batch_id),{date,present});break;
    }
    case "invoice":{
     const batchId=uuid("batchId"),amount=money("amount"),dueOn=get("dueOn");if(!isDate(dueOn))throw new Error("Choose an installment due date.");
-    const inv=await raiseInvoice({partyId:uuid("partyId"),batchId,amount,description:get("description"),gstRate:get("gstRate")||"18"});
+    const description=get("description");requireOptionalText(description,"invoice description",500);
+    const inv=await raiseInvoice({partyId:uuid("partyId"),batchId,amount,description,gstRate:get("gstRate")||"18"});
     await recordPayment({invoiceId:inv.invoiceId,batchId,amount,paid:false,dueOn});break;
    }
    case "payment":{
     const invoiceId=uuid("invoiceId");const rows=await tx.execute(sql`select batch_id from invoice where id=${invoiceId}::uuid`);if(!rows.rows[0])throw new Error("Invoice not found.");
-    await recordPayment({invoiceId,batchId:String(rows.rows[0].batch_id),amount:money("amount"),method:get("method")||"bank",paid:true});break;
+    const method=get("method")||"bank";requireOneOf(method,"payment method",["bank","upi","card","cash"] as const);
+    await recordPayment({invoiceId,batchId:String(rows.rows[0].batch_id),amount:money("amount"),method,paid:true});break;
    }
    case "settle":{
     const id=uuid("paymentId");const found=await tx.execute(sql`select invoice_id from payment where id=${id}::uuid`);if(!found.rows[0])throw new Error("Installment not found.");const invoiceId=String(found.rows[0].invoice_id);
     await tx.execute(sql`select id from invoice where id=${invoiceId}::uuid for update`);
-    const rows=await tx.execute(sql`update payment set paid_at=now(),method=${get("method")||"bank"} where id=${id}::uuid and paid_at is null returning amount`);
+    const method=get("method")||"bank";requireOneOf(method,"payment method",["bank","upi","card","cash"] as const);
+    const rows=await tx.execute(sql`update payment set paid_at=now(),method=${method} where id=${id}::uuid and paid_at is null returning amount`);
     if(rows.rows.length){const inv=await tx.execute(sql`select batch_id from invoice where id=${invoiceId}::uuid`);await event("payment.settled","payment",id,String(inv.rows[0].batch_id),{amount:rows.rows[0].amount});
-     await tx.execute(sql`update invoice set status=case when (select coalesce(sum(amount),0) from payment where invoice_id=${invoiceId}::uuid and paid_at is not null)>=(select coalesce(sum(amount-discount),0) from invoice_line where invoice_id=${invoiceId}::uuid) then 'paid'::invoice_status else 'part_paid'::invoice_status end where id=${invoiceId}::uuid`);
+     await tx.execute(sql`update invoice set status=case
+      when (select coalesce(sum(amount),0) from payment where invoice_id=${invoiceId}::uuid and paid_at is not null)>=(select coalesce(sum(amount-discount),0) from invoice_line where invoice_id=${invoiceId}::uuid) then 'paid'::invoice_status
+      when (select coalesce(sum(amount),0) from payment where invoice_id=${invoiceId}::uuid and paid_at is not null)>0 then 'part_paid'::invoice_status
+      else 'issued'::invoice_status end where id=${invoiceId}::uuid`);
     }break;
    }
    case "refund":{
@@ -124,10 +133,16 @@ export async function submitOperation(_previous:FormResult,form:FormData):Promis
     await tx.execute(sql`update invoice set status=case
       when (select coalesce(sum(amount),0) from payment where invoice_id=${invoiceId}::uuid and paid_at is not null)
         >= (select coalesce(sum(amount-discount),0) from invoice_line where invoice_id=${invoiceId}::uuid)
-      then 'paid'::invoice_status else 'part_paid'::invoice_status end where id=${invoiceId}::uuid`);
+      then 'paid'::invoice_status
+      when (select coalesce(sum(amount),0) from payment where invoice_id=${invoiceId}::uuid and paid_at is not null) > 0
+      then 'part_paid'::invoice_status else 'issued'::invoice_status end where id=${invoiceId}::uuid`);
     break;
    }
-   case "expense": await recordExpense({batchId:uuid("batchId"),amount:money("amount"),category:get("category") as "venue",vendor:get("vendor")});break;
+   case "expense":{
+    const category=get("category");requireOneOf(category,"expense category",["trainer_fee","venue","travel","materials","marketing","other"] as const);
+    const vendor=get("vendor");requireOptionalText(vendor,"vendor",200);
+    await recordExpense({batchId:uuid("batchId"),amount:money("amount"),category,vendor});break;
+   }
    case "trainerPayment": await recordTrainerPayment({batchId:uuid("batchId"),trainerId:uuid("trainerId"),amount:money("amount")});break;
   }
   const result={ok:true,message:"Saved successfully."};

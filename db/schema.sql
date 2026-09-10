@@ -32,9 +32,9 @@ create type event_type      as enum (
 create table party (
   id         uuid primary key default gen_random_uuid(),
   kind       text not null check (kind in ('person','org')),
-  name       text not null,
-  email      text,
-  phone      text,
+  name       text not null check (btrim(name) <> '' and length(name) <= 200),
+  email      text check (email is null or length(email) <= 254),
+  phone      text check (phone is null or length(phone) <= 50),
   roles      text[] not null default '{}',   -- {student} | {corporate_buyer} | {trainer} | {referrer}
   -- embedding vector(1536),                  -- pgvector: fills to dedup "Acme Corp" vs "Acme Corp Pvt Ltd"
   created_at timestamptz not null default now()
@@ -46,7 +46,7 @@ create index party_email_idx on party (email);
 create table app_user (
   id         uuid primary key default gen_random_uuid(),
   party_id   uuid references party(id),
-  email      text unique not null,
+  email      text unique not null check (btrim(email) <> '' and length(email) <= 254),
   role       user_role not null,
   created_at timestamptz not null default now()
 );
@@ -55,8 +55,8 @@ create table app_user (
 create table enquiry (
   id          uuid primary key default gen_random_uuid(),
   party_id    uuid not null references party(id),
-  source      text,                             -- 'linkedin','referral','website'
-  source_cost numeric(12,2) not null default 0, -- marketing spend attributed to this lead
+  source      text check (source is null or length(source) <= 100), -- 'linkedin','referral','website'
+  source_cost numeric(12,2) not null default 0 check (source_cost >= 0), -- marketing spend attributed to this lead
   stage       lead_stage not null default 'new',
   owner_id    uuid references app_user(id),
   created_at  timestamptz not null default now()
@@ -66,8 +66,8 @@ create table activity (
   id          uuid primary key default gen_random_uuid(),
   enquiry_id  uuid references enquiry(id),
   party_id    uuid references party(id),
-  kind        text not null,                    -- 'call','email','note','meeting'
-  note        text,
+  kind        text not null check (kind in ('agreement','call','email','note','meeting')),
+  note        text check (note is null or length(note) <= 4000),
   owner_id    uuid references app_user(id),
   occurred_at timestamptz not null default now()
 );
@@ -75,8 +75,8 @@ create table activity (
 -- 4. Training ops — course, batch (profit centre), enrollment, attendance -----
 create table course (
   id            uuid primary key default gen_random_uuid(),
-  title         text not null,
-  default_price numeric(12,2)
+  title         text not null check (btrim(title) <> '' and length(title) <= 200),
+  default_price numeric(12,2) check (default_price is null or default_price > 0)
 );
 
 create table batch (
@@ -84,12 +84,13 @@ create table batch (
   course_id      uuid not null references course(id),
   trainer_id     uuid references party(id),        -- the trainer is a party
   source_lead_id uuid references enquiry(id),       -- traceability back to the enquiry
-  name           text not null,
-  location       text,
+  name           text not null check (btrim(name) <> '' and length(name) <= 200),
+  location       text check (location is null or length(location) <= 200),
   starts_on      date,
   ends_on        date,
   status         batch_status not null default 'planned',
-  created_at     timestamptz not null default now()
+  created_at     timestamptz not null default now(),
+  check (ends_on is null or starts_on is null or ends_on >= starts_on)
 );
 create index batch_course_idx  on batch (course_id);
 create index batch_trainer_idx on batch (trainer_id);
@@ -108,7 +109,8 @@ create table attendance (
   id           uuid primary key default gen_random_uuid(),
   enrollment_id uuid not null references enrollment(id),
   session_date date not null,
-  present      boolean not null default false
+  present      boolean not null default false,
+  constraint attendance_enrollment_session_key unique (enrollment_id, session_date)
 );
 
 -- 5. Sales + money IN ---------------------------------------------------------
@@ -116,8 +118,8 @@ create table quotation (
   id         uuid primary key default gen_random_uuid(),
   enquiry_id uuid references enquiry(id),
   party_id   uuid not null references party(id),
-  amount     numeric(12,2) not null,
-  status     text not null default 'sent',         -- sent | accepted | rejected
+  amount     numeric(12,2) not null check (amount > 0),
+  status     text not null default 'sent' check (status in ('sent','accepted','rejected')),
   created_at timestamptz not null default now()
 );
 
@@ -126,7 +128,7 @@ create table invoice (
   party_id   uuid not null references party(id),
   batch_id   uuid references batch(id),
   status     invoice_status not null default 'issued',
-  gst_rate   numeric(5,2) not null default 18,
+  gst_rate   numeric(5,2) not null default 18 check (gst_rate >= 0 and gst_rate <= 100),
   issued_at  timestamptz not null default now()
 );
 create index invoice_party_idx on invoice (party_id);
@@ -135,9 +137,9 @@ create table invoice_line (
   id          uuid primary key default gen_random_uuid(),
   invoice_id  uuid not null references invoice(id),
   batch_id    uuid not null references batch(id),   -- ★ revenue side of per-batch margin
-  description text,
-  amount      numeric(12,2) not null,               -- pre-tax line amount
-  discount    numeric(12,2) not null default 0,
+  description text check (description is null or length(description) <= 500),
+  amount      numeric(12,2) not null check (amount > 0), -- pre-tax line amount
+  discount    numeric(12,2) not null default 0 check (discount >= 0 and discount <= amount),
   occurred_at timestamptz not null default now()    -- effective date → powers as-of reads
 );
 create index invoice_line_batch_idx on invoice_line (batch_id);
@@ -146,9 +148,13 @@ create table payment (
   id         uuid primary key default gen_random_uuid(),
   invoice_id uuid not null references invoice(id),
   amount     numeric(12,2) not null,
-  method     text,                                  -- 'bank' | 'card' | 'upi'
+  method     text,
   due_on     date,                                  -- installment due date (for aging)
-  paid_at    timestamptz                            -- null = still outstanding
+  paid_at    timestamptz,                           -- null = still outstanding
+  constraint payment_input_valid check (
+    (amount > 0 and (method is null or method in ('bank','upi','card','cash')))
+    or (amount < 0 and method = 'refund' and paid_at is not null)
+  )
 );
 create index payment_invoice_idx on payment (invoice_id);
 
@@ -157,8 +163,8 @@ create table expense (
   id          uuid primary key default gen_random_uuid(),
   batch_id    uuid references batch(id),            -- ★ cost side of per-batch margin
   category    expense_category not null,
-  vendor      text,
-  amount      numeric(12,2) not null,
+  vendor      text check (vendor is null or length(vendor) <= 200),
+  amount      numeric(12,2) not null check (amount > 0),
   occurred_at timestamptz not null default now()
 );
 create index expense_batch_idx on expense (batch_id);
@@ -167,7 +173,7 @@ create table trainer_payment (
   id          uuid primary key default gen_random_uuid(),
   batch_id    uuid not null references batch(id),   -- ★
   trainer_id  uuid not null references party(id),
-  amount      numeric(12,2) not null,
+  amount      numeric(12,2) not null check (amount > 0),
   occurred_at timestamptz not null default now()
 );
 create index trainer_payment_batch_idx on trainer_payment (batch_id);

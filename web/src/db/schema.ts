@@ -2,7 +2,7 @@ import { pgTable, foreignKey, uuid, text, numeric, timestamp, index, check, uniq
 import { sql } from "drizzle-orm"
 
 export const batchStatus = pgEnum("batch_status", ['planned', 'running', 'completed', 'cancelled'])
-export const eventType = pgEnum("event_type", ['lead.created', 'lead.contacted', 'lead.converted', 'lead.lost', 'quotation.sent', 'agreement.signed', 'batch.created', 'enrollment.created', 'attendance.marked', 'invoice.raised', 'invoice.line_added', 'payment.received', 'expense.recorded', 'trainer_payment.recorded', 'lms.completion', 'lms.attendance'])
+export const eventType = pgEnum("event_type", ['lead.created', 'lead.contacted', 'lead.converted', 'lead.lost', 'quotation.sent', 'agreement.signed', 'batch.created', 'enrollment.created', 'attendance.marked', 'invoice.raised', 'invoice.line_added', 'payment.received', 'expense.recorded', 'trainer_payment.recorded', 'lms.completion', 'lms.attendance', 'party.created', 'course.created', 'batch.updated', 'payment.scheduled', 'payment.settled', 'account.created', 'account.updated', 'password.changed', 'password.reset_requested', 'lead.updated', 'batch.details_updated', 'payment.refunded'])
 export const expenseCategory = pgEnum("expense_category", ['trainer_fee', 'venue', 'travel', 'materials', 'marketing', 'other'])
 export const invoiceStatus = pgEnum("invoice_status", ['draft', 'issued', 'part_paid', 'paid', 'void'])
 export const leadStage = pgEnum("lead_stage", ['new', 'contacted', 'qualified', 'quoted', 'won', 'lost'])
@@ -260,6 +260,7 @@ export const attendance = pgTable("attendance", {
 			foreignColumns: [enrollment.id],
 			name: "attendance_enrollment_id_fkey"
 		}),
+	unique("attendance_enrollment_session_key").on(table.enrollmentId, table.sessionDate),
 	pgPolicy("attendance_access", { as: "permissive", for: "select", to: ["public"], using: sql`((current_setting('app.user_role'::text, true) <> 'student'::text) OR (enrollment_id IN ( SELECT enrollment.id
    FROM enrollment
   WHERE (enrollment.student_id = (NULLIF(current_setting('app.party_id'::text, true), ''::text))::uuid))))` }),

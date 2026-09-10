@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { eq, sql } from "drizzle-orm";
 import { authorizedTransaction, currentActor, type Tx } from "./transaction";
-import { requireMoney, requireText, requireUuid, isDate } from "./validation";
+import { isDate, requireMoney, requireOneOf, requireOptionalText, requireText, requireUuid } from "./validation";
 import {
   party,
   enquiry,
@@ -33,6 +33,7 @@ async function appendEvent(
       | "enrollment.created"
       | "invoice.raised"
       | "invoice.line_added"
+      | "payment.scheduled"
       | "payment.received"
       | "expense.recorded"
       | "trainer_payment.recorded";
@@ -63,7 +64,10 @@ export async function createLead(input: {
   sourceCost?: string;
 }) {
   requireText(input.name, "name");
-  if (input.kind !== undefined && !["person", "org"].includes(input.kind)) throw new Error("Invalid party kind.");
+  if (input.kind !== undefined) requireOneOf(input.kind, "party kind", ["person", "org"] as const);
+  requireOptionalText(input.email, "email", 254);
+  requireOptionalText(input.phone, "phone", 50);
+  requireOptionalText(input.source, "source", 100);
   if (input.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email)) throw new Error("Invalid email.");
   requireMoney(input.sourceCost ?? "0", "source cost", true);
   return authorizedTransaction("crm", async (tx) => {
@@ -139,6 +143,8 @@ export async function createBatch(input: {
   requireText(input.name, "batch name");
   if (input.sourceLeadId) requireUuid(input.sourceLeadId, "lead ID");
   if (input.trainerId) requireUuid(input.trainerId, "trainer ID");
+  requireOptionalText(input.location, "location", 200);
+  if (input.status !== undefined) requireOneOf(input.status, "batch status", ["planned", "running", "completed", "cancelled"] as const);
   if (input.startsOn && !isDate(input.startsOn)) throw new Error("Invalid start date.");
   if (input.endsOn && !isDate(input.endsOn)) throw new Error("Invalid end date.");
   if (input.startsOn && input.endsOn && input.endsOn < input.startsOn) throw new Error("End date must follow start date.");
@@ -214,6 +220,7 @@ export async function raiseInvoice(input: {
   requireMoney(input.amount, "invoice amount");
   requireMoney(input.discount ?? "0", "discount", true);
   requireMoney(input.gstRate ?? "18", "GST rate", true);
+  requireOptionalText(input.description, "invoice description", 500);
   if (Number(input.discount ?? 0) > Number(input.amount)) throw new Error("Discount exceeds invoice amount.");
   if (Number(input.gstRate ?? 18) > 100) throw new Error("Invalid GST rate.");
   return authorizedTransaction("finance", async (tx) => {
@@ -275,6 +282,7 @@ export async function recordPayment(input: {
   requireUuid(input.invoiceId, "invoice ID");
   requireUuid(input.batchId, "batch ID");
   requireMoney(input.amount, "payment amount");
+  if (input.method !== undefined) requireOneOf(input.method, "payment method", ["bank", "upi", "card", "cash"] as const);
   if (input.paid !== undefined && typeof input.paid !== "boolean") throw new Error("Invalid payment state.");
   if (input.dueOn && !isDate(input.dueOn)) throw new Error("Invalid due date.");
   return authorizedTransaction("finance", async (tx) => {
@@ -299,7 +307,7 @@ export async function recordPayment(input: {
       .returning();
 
     await appendEvent(tx, {
-      eventType: "payment.received",
+      eventType: input.paid === false ? "payment.scheduled" : "payment.received",
       entityType: "payment",
       entityId: pay.id,
       batchId: input.batchId,
@@ -313,7 +321,9 @@ export async function recordPayment(input: {
       await tx.execute(sql`update invoice set status=case
         when (select coalesce(sum(amount),0) from payment where invoice_id=${input.invoiceId}::uuid and paid_at is not null)
           >= (select coalesce(sum(amount-discount),0) from invoice_line where invoice_id=${input.invoiceId}::uuid)
-        then 'paid'::invoice_status else 'part_paid'::invoice_status end where id=${input.invoiceId}::uuid`);
+        then 'paid'::invoice_status
+        when (select coalesce(sum(amount),0) from payment where invoice_id=${input.invoiceId}::uuid and paid_at is not null) > 0
+        then 'part_paid'::invoice_status else 'issued'::invoice_status end where id=${input.invoiceId}::uuid`);
     }
 
     revalidatePath("/dashboard");
@@ -336,6 +346,8 @@ export async function recordExpense(input: {
 }) {
   requireUuid(input.batchId, "batch ID");
   requireMoney(input.amount, "expense amount");
+  requireOneOf(input.category, "expense category", ["trainer_fee", "venue", "travel", "materials", "marketing", "other"] as const);
+  requireOptionalText(input.vendor, "vendor", 200);
   return authorizedTransaction("finance", async (tx) => {
     const [ex] = await tx
       .insert(expense)

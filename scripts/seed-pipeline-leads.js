@@ -5,6 +5,7 @@
 // figures (net_profit stays 70000).
 require('dotenv').config({ path: 'web/.env.local' });
 const { Client } = require('pg');
+const { verifiedConnectionString } = require('./db-connection');
 
 const LEADS = [
   {
@@ -42,10 +43,7 @@ const LEADS = [
 ];
 
 async function main() {
-  const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-  });
+  const client = new Client({ connectionString: verifiedConnectionString(process.env.DATABASE_URL) });
   await client.connect();
 
   // Idempotent: skip any lead whose party name already exists.

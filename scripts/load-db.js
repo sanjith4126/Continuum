@@ -4,6 +4,7 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { Client } = require('pg');
+const { verifiedConnectionString } = require('./db-connection');
 
 async function main() {
   const connectionString = process.env.DATABASE_URL;
@@ -11,7 +12,7 @@ async function main() {
     console.error('DATABASE_URL not set');
     process.exit(1);
   }
-  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false } });
+  const client = new Client({ connectionString: verifiedConnectionString(connectionString) });
   await client.connect();
 
   if (process.argv.includes('--reset')) {

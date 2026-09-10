@@ -3,9 +3,10 @@ require('dotenv').config({ path: 'web/.env.local', quiet: true });
 const { Client } = require('pg');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const { verifiedConnectionString } = require('./db-connection');
 const results = [];
 async function main() {
-  const client = new Client({ connectionString: process.env.DATABASE_URL, connectionTimeoutMillis: 10000, statement_timeout: 10000 });
+  const client = new Client({ connectionString: verifiedConnectionString(process.env.DATABASE_URL), connectionTimeoutMillis: 10000, statement_timeout: 10000 });
   await client.connect();
   async function scoped(role, partyId, query, dbRole = 'continuum_app') {
     await client.query('begin read only');

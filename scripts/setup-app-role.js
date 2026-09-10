@@ -7,12 +7,10 @@
 // declaring it.
 require('dotenv').config();
 const { Client } = require('pg');
+const { verifiedConnectionString } = require('./db-connection');
 
 async function main() {
-  const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-  });
+  const client = new Client({ connectionString: verifiedConnectionString(process.env.DATABASE_URL) });
   await client.connect();
 
   console.log('--- creating continuum_app role ---');

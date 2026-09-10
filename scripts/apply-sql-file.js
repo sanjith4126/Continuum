@@ -3,15 +3,13 @@
 require('dotenv').config({ path: 'web/.env.local' });
 const { Client } = require('pg');
 const fs = require('fs');
+const { verifiedConnectionString } = require('./db-connection');
 
 async function main() {
   const file = process.argv[2];
   if (!file) throw new Error('usage: node scripts/apply-sql-file.js <path.sql>');
   const sql = fs.readFileSync(file, 'utf8');
-  const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-  });
+  const client = new Client({ connectionString: verifiedConnectionString(process.env.DATABASE_URL) });
   await client.connect();
   try {
     await client.query('begin');

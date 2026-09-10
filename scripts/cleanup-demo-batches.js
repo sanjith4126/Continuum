@@ -4,14 +4,12 @@
 // the dashboard, and the AI consultant's cached answer all assume.
 require('dotenv').config({ path: 'web/.env.local' });
 const { Client } = require('pg');
+const { verifiedConnectionString } = require('./db-connection');
 
 const BATCH_NAME_PATTERN = 'Demo Corp%';
 
 async function main() {
-  const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-  });
+  const client = new Client({ connectionString: verifiedConnectionString(process.env.DATABASE_URL) });
   await client.connect();
 
   const batches = await client.query(

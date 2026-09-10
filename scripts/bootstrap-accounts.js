@@ -4,8 +4,9 @@ require('dotenv').config({path:'web/.env.local',quiet:true});
 const {Client}=require('pg');
 const {randomBytes,scryptSync}=require('node:crypto');
 const fs=require('node:fs');
+const {verifiedConnectionString}=require('./db-connection');
 async function main(){
- const c=new Client({connectionString:process.env.DATABASE_URL});await c.connect();
+ const c=new Client({connectionString:verifiedConnectionString(process.env.DATABASE_URL)});await c.connect();
  const credentials=[];
  try{
   await c.query('begin');
