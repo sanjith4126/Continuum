@@ -1,71 +1,74 @@
 import Link from "next/link";
 import { formatINR } from "@/lib/format";
 import type { BatchPnlRow } from "@/lib/queries";
+import { StatusChip } from "./StatusChip";
 
 export function BatchPnlTable({ rows }: { rows: BatchPnlRow[] }) {
-  const maxAbs = Math.max(
-    1,
-    ...rows.map((r) => Math.abs(Number(r.netProfit)))
-  );
+  const maxAbs = Math.max(1, ...rows.map((r) => Math.abs(Number(r.netProfit))));
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-      <table className="w-full text-left text-sm">
+    <div className="overflow-hidden rounded-lg border border-(--color-outline-variant) bg-(--color-surface-container-lowest)">
+      <table className="w-full border-collapse text-left">
         <thead>
-          <tr className="border-b border-neutral-200 text-neutral-500">
-            <th className="px-6 py-3 font-medium">Batch</th>
-            <th className="px-6 py-3 font-medium">Revenue</th>
-            <th className="px-6 py-3 font-medium">Cost</th>
-            <th className="px-6 py-3 font-medium">Net profit</th>
-            <th className="px-6 py-3 font-medium"></th>
+          <tr className="h-8 border-b border-(--color-outline-variant) bg-(--color-surface)">
+            <th className="px-4 font-(family-name:--font-ui) text-[11px] font-semibold uppercase tracking-wider text-(--color-on-surface-variant)">
+              Batch
+            </th>
+            <th className="px-4 text-right font-(family-name:--font-ui) text-[11px] font-semibold uppercase tracking-wider text-(--color-on-surface-variant)">
+              Revenue
+            </th>
+            <th className="px-4 text-right font-(family-name:--font-ui) text-[11px] font-semibold uppercase tracking-wider text-(--color-on-surface-variant)">
+              Cost
+            </th>
+            <th className="px-4 text-right font-(family-name:--font-ui) text-[11px] font-semibold uppercase tracking-wider text-(--color-on-surface-variant)">
+              Net profit
+            </th>
+            <th className="px-4 font-(family-name:--font-ui) text-[11px] font-semibold uppercase tracking-wider text-(--color-on-surface-variant)"></th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => {
             const profit = Number(row.netProfit);
             const isProfit = profit >= 0;
-            const barWidth = Math.max(
-              4,
-              (Math.abs(profit) / maxAbs) * 100
-            );
+            const barWidth = Math.max(4, (Math.abs(profit) / maxAbs) * 100);
             return (
               <tr
                 key={row.batchId}
-                className="border-b border-neutral-100 last:border-0 hover:bg-neutral-50"
+                className="h-10 border-b border-(--color-surface-container-low) last:border-0 hover:bg-(--color-surface-container-low)"
               >
-                <td className="px-6 py-4 font-medium text-neutral-900">
+                <td className="px-4 text-[13px] font-medium text-(--color-on-surface)">
                   {row.name}
                 </td>
-                <td className="px-6 py-4 text-neutral-600">
+                <td className="px-4 text-right font-(family-name:--font-data) text-[13px] text-(--color-on-surface-variant)">
                   {formatINR(row.revenue)}
                 </td>
-                <td className="px-6 py-4 text-neutral-600">
+                <td className="px-4 text-right font-(family-name:--font-data) text-[13px] text-(--color-on-surface-variant)">
                   {formatINR(row.cost)}
                 </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`font-semibold tabular-nums ${
-                        isProfit ? "text-emerald-600" : "text-rose-600"
-                      }`}
-                    >
-                      {formatINR(row.netProfit)}
-                    </span>
-                    <div className="h-1.5 w-24 overflow-hidden rounded-full bg-neutral-100">
+                <td className="px-4">
+                  <div className="flex items-center justify-end gap-3">
+                    <div className="h-1 w-16 overflow-hidden rounded-full bg-(--color-surface-container)">
                       <div
                         className={`h-full rounded-full ${
-                          isProfit ? "bg-emerald-500" : "bg-rose-500"
+                          isProfit ? "bg-(--color-profit-600)" : "bg-(--color-loss-600)"
                         }`}
                         style={{ width: `${barWidth}%` }}
                       />
                     </div>
+                    <span
+                      className={`font-(family-name:--font-data) text-[13px] font-semibold ${
+                        isProfit ? "text-(--color-profit-600)" : "text-(--color-loss-600)"
+                      }`}
+                    >
+                      {formatINR(row.netProfit)}
+                    </span>
                   </div>
                 </td>
-                <td className="px-6 py-4 text-right">
+                <td className="px-4 text-right">
                   {row.sourceLeadId ? (
                     <Link
                       href={`/trace/${row.sourceLeadId}`}
-                      className="text-sm text-neutral-400 hover:text-neutral-900"
+                      className="text-[12px] text-(--color-accent-500) hover:underline"
                     >
                       Trace →
                     </Link>
@@ -76,7 +79,7 @@ export function BatchPnlTable({ rows }: { rows: BatchPnlRow[] }) {
           })}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={5} className="px-6 py-10 text-center text-neutral-400">
+              <td colSpan={5} className="px-4 py-10 text-center text-[13px] text-(--color-outline)">
                 No batches yet.
               </td>
             </tr>

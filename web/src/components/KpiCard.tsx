@@ -2,22 +2,38 @@ export function KpiCard({
   label,
   value,
   tone = "neutral",
+  icon,
 }: {
   label: string;
   value: string;
   tone?: "neutral" | "positive" | "negative";
+  icon?: React.ReactNode;
 }) {
   const toneClass =
     tone === "positive"
-      ? "text-emerald-600"
+      ? "text-(--color-profit-600)"
       : tone === "negative"
-        ? "text-rose-600"
-        : "text-neutral-900";
+        ? "text-(--color-loss-600)"
+        : "text-(--color-on-surface)";
+
+  const borderClass =
+    tone === "positive"
+      ? "border-(--color-profit-600)/30"
+      : "border-(--color-outline-variant)";
 
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-      <div className="text-sm font-medium text-neutral-500">{label}</div>
-      <div className={`mt-2 text-3xl font-semibold tracking-tight ${toneClass}`}>
+    <div
+      className={`rounded-lg border bg-(--color-surface-container-lowest) p-4 ${borderClass}`}
+    >
+      <div className="flex items-center justify-between">
+        <div className="text-[12px] font-medium uppercase tracking-wide text-(--color-outline)">
+          {label}
+        </div>
+        {icon}
+      </div>
+      <div
+        className={`mt-2 font-(family-name:--font-data) text-[20px] font-semibold ${toneClass}`}
+      >
         {value}
       </div>
     </div>

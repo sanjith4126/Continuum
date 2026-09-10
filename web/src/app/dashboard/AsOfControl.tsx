@@ -20,14 +20,14 @@ export function AsOfControl() {
   }
 
   return (
-    <div className="flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-3 py-1.5 shadow-sm">
-      <span className="text-sm text-neutral-500">As of</span>
+    <div className="flex h-8 items-center gap-2 rounded-md border border-(--color-outline-variant) bg-(--color-surface-container-lowest) px-2.5">
+      <span className="text-[12px] text-(--color-outline)">As of</span>
       <input
         type="date"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onBlur={() => apply(value)}
-        className="text-sm text-neutral-900 outline-none"
+        className="bg-transparent font-(family-name:--font-data) text-[12px] text-(--color-on-surface) outline-none"
       />
       {currentAsOf && (
         <button
@@ -35,7 +35,7 @@ export function AsOfControl() {
             setValue("");
             apply("");
           }}
-          className="text-xs text-neutral-400 hover:text-neutral-900"
+          className="text-[11px] text-(--color-accent-500) hover:underline"
         >
           Reset
         </button>

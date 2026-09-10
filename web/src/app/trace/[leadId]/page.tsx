@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AppShell } from "@/components/AppShell";
 import { TraceChain } from "@/components/TraceChain";
 import { EventStrip } from "@/components/EventStrip";
 import {
@@ -28,22 +28,16 @@ export default async function TracePage({
   ]);
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <div className="mx-auto max-w-5xl px-6 py-12">
-        <Link
-          href="/dashboard"
-          className="text-sm text-neutral-400 hover:text-neutral-900"
-        >
-          ← Dashboard
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-neutral-900">
+    <AppShell breadcrumb="Traceability">
+      <div className="mx-auto max-w-5xl px-6 py-8">
+        <h1 className="text-2xl font-semibold tracking-tight text-(--color-on-surface)">
           Enquiry → outcome
         </h1>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="mt-1 text-[13px] text-(--color-outline)">
           Lead {leadId.slice(0, 8)} traced from enquiry to margin.
         </p>
 
-        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <TraceChain
               outcome={outcome}
@@ -58,6 +52,6 @@ export default async function TracePage({
           </div>
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 }

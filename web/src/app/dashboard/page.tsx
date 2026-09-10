@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import Link from "next/link";
+import { AppShell } from "@/components/AppShell";
 import { KpiCard } from "@/components/KpiCard";
 import { BatchPnlTable } from "@/components/BatchPnlTable";
 import { AsOfControl } from "./AsOfControl";
@@ -21,49 +21,23 @@ export default async function DashboardPage({
   const netProfit = Number(kpis.netProfit);
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <div className="mx-auto max-w-6xl px-6 py-12">
-        <div className="flex items-center justify-between">
+    <AppShell breadcrumb="Management Overview">
+      <div className="mx-auto max-w-6xl px-6 py-8">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
-              Dashboard
+            <h1 className="text-2xl font-semibold tracking-tight text-(--color-on-surface)">
+              Management Overview
             </h1>
-            <p className="mt-1 text-sm text-neutral-500">
+            <p className="mt-1 text-[13px] text-(--color-outline)">
               Per-batch net profit, end to end.
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/collections"
-              className="text-sm text-neutral-500 hover:text-neutral-900"
-            >
-              Collections
-            </Link>
-            <Link
-              href="/pipeline"
-              className="text-sm text-neutral-500 hover:text-neutral-900"
-            >
-              Run lifecycle
-            </Link>
-            <Link
-              href="/consultant"
-              className="text-sm text-neutral-500 hover:text-neutral-900"
-            >
-              Ask the consultant
-            </Link>
-            <Link
-              href="/assistant"
-              className="text-sm text-neutral-500 hover:text-neutral-900"
-            >
-              Student assistant
-            </Link>
-            <Suspense fallback={null}>
-              <AsOfControl />
-            </Suspense>
-          </div>
+          <Suspense fallback={null}>
+            <AsOfControl />
+          </Suspense>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard label="Revenue" value={formatINR(kpis.revenue)} />
           <KpiCard label="Collected" value={formatINR(kpis.collected)} />
           <KpiCard label="Outstanding" value={formatINR(kpis.outstanding)} />
@@ -74,13 +48,20 @@ export default async function DashboardPage({
           />
         </div>
 
-        <div className="mt-10">
-          <h2 className="mb-3 text-sm font-medium text-neutral-500">
-            Net profit by batch{asOf ? ` — as of ${asOf}` : ""}
-          </h2>
+        <div className="mt-8">
+          <div className="mb-2 flex items-baseline justify-between">
+            <h2 className="text-[14px] font-semibold text-(--color-on-surface)">
+              Net profit by batch
+            </h2>
+            {asOf && (
+              <span className="font-(family-name:--font-data) text-[11px] text-(--color-outline)">
+                as of {asOf}
+              </span>
+            )}
+          </div>
           <BatchPnlTable rows={batchRows} />
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 }

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppShell } from "@/components/AppShell";
 import { CollectionsTable } from "@/components/CollectionsTable";
 import { getCollectionsAging } from "@/lib/queries";
 import { formatINR } from "@/lib/format";
@@ -8,37 +8,31 @@ export default async function CollectionsPage() {
   const totalAtRisk = rows.reduce((sum, r) => sum + Number(r.rupeesAtRisk), 0);
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <div className="mx-auto max-w-6xl px-6 py-12">
-        <Link
-          href="/dashboard"
-          className="text-sm text-neutral-400 hover:text-neutral-900"
-        >
-          ← Dashboard
-        </Link>
-        <div className="mt-2 flex items-center justify-between">
+    <AppShell breadcrumb="Collections">
+      <div className="mx-auto max-w-6xl px-6 py-8">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
+            <h1 className="text-2xl font-semibold tracking-tight text-(--color-on-surface)">
               Collections
             </h1>
-            <p className="mt-1 text-sm text-neutral-500">
+            <p className="mt-1 text-[13px] text-(--color-outline)">
               Outstanding installments ranked by rupees at risk.
             </p>
           </div>
-          <div className="text-right">
-            <div className="text-sm font-medium text-neutral-500">
+          <div className="rounded-lg border border-(--color-loss-600)/30 bg-(--color-loss-100) px-4 py-2 text-right">
+            <div className="font-(family-name:--font-data) text-[10px] uppercase tracking-wider text-(--color-loss-600)">
               Total at risk
             </div>
-            <div className="text-2xl font-semibold text-rose-600">
+            <div className="font-(family-name:--font-data) text-[20px] font-semibold text-(--color-loss-600)">
               {formatINR(totalAtRisk)}
             </div>
           </div>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-6">
           <CollectionsTable rows={rows} />
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 }

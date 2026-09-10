@@ -13,10 +13,10 @@ function Step({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative pl-8">
-      <div className="absolute left-0 top-1.5 h-3 w-3 rounded-full border-2 border-neutral-900 bg-white" />
-      <div className="absolute left-1.25 top-5 -bottom-6 w-px bg-neutral-200 last:hidden" />
-      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-neutral-400">
+    <div className="relative pl-7">
+      <div className="absolute left-0 top-1 h-2.5 w-2.5 rounded-full border-2 border-(--color-accent-500) bg-(--color-surface-container-lowest)" />
+      <div className="absolute left-1 top-4 -bottom-5 w-px bg-(--color-outline-variant) last:hidden" />
+      <div className="mb-0.5 font-(family-name:--font-data) text-[10px] font-semibold uppercase tracking-wider text-(--color-outline)">
         {title}
       </div>
       <div>{children}</div>
@@ -41,12 +41,12 @@ export function TraceChain({
   const totalNetProfit = pnl.reduce((sum, p) => sum + Number(p.net_profit), 0);
 
   return (
-    <div className="space-y-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+    <div className="space-y-5 rounded-lg border border-(--color-outline-variant) bg-(--color-surface-container-lowest) p-5">
       <Step title="Enquiry">
-        <div className="text-base font-medium text-neutral-900">
+        <div className="text-[14px] font-medium text-(--color-on-surface)">
           {partyName}
         </div>
-        <div className="text-sm text-neutral-500">
+        <div className="text-[12px] text-(--color-on-surface-variant)">
           source: {lead?.source ?? "—"} · stage: {lead?.stage} · created{" "}
           {lead ? new Date(lead.created_at).toLocaleDateString("en-IN") : "—"}
         </div>
@@ -54,12 +54,12 @@ export function TraceChain({
 
       <Step title="Batch">
         {batches.length === 0 && (
-          <div className="text-sm text-neutral-400">No batch yet.</div>
+          <div className="text-[13px] text-(--color-outline)">No batch yet.</div>
         )}
         {batches.map((b) => (
-          <div key={b.id} className="text-sm">
-            <span className="font-medium text-neutral-900">{b.name}</span>{" "}
-            <span className="text-neutral-500">
+          <div key={b.id} className="text-[13px]">
+            <span className="font-medium text-(--color-on-surface)">{b.name}</span>{" "}
+            <span className="text-(--color-on-surface-variant)">
               · {b.status} · {b.location ?? "—"}
               {b.starts_on ? ` · starts ${b.starts_on}` : ""}
             </span>
@@ -69,10 +69,10 @@ export function TraceChain({
 
       <Step title="Invoice">
         {invoices.length === 0 && (
-          <div className="text-sm text-neutral-400">No invoice yet.</div>
+          <div className="text-[13px] text-(--color-outline)">No invoice yet.</div>
         )}
         {invoices.map((inv) => (
-          <div key={inv.id} className="text-sm text-neutral-700">
+          <div key={inv.id} className="font-(family-name:--font-data) text-[12px] text-(--color-on-surface-variant)">
             Invoice {inv.id.slice(0, 8)} · {inv.status} · GST {inv.gst_rate}%
           </div>
         ))}
@@ -80,17 +80,17 @@ export function TraceChain({
 
       <Step title="Payments">
         {payments.length === 0 && (
-          <div className="text-sm text-neutral-400">No payments yet.</div>
+          <div className="text-[13px] text-(--color-outline)">No payments yet.</div>
         )}
         {payments.map((p) => (
-          <div key={p.id} className="text-sm text-neutral-700">
+          <div key={p.id} className="font-(family-name:--font-data) text-[12px] text-(--color-on-surface-variant)">
             {formatINR(p.amount)} · {p.method ?? "—"} ·{" "}
             {p.paidAt ? (
-              <span className="text-emerald-600">
+              <span className="text-(--color-profit-600)">
                 paid {new Date(p.paidAt).toLocaleDateString("en-IN")}
               </span>
             ) : (
-              <span className="text-amber-600">
+              <span className="text-(--color-warn-600)">
                 outstanding{p.dueOn ? `, due ${p.dueOn}` : ""}
               </span>
             )}
@@ -100,15 +100,15 @@ export function TraceChain({
 
       <Step title="Expenses">
         {expenses.length === 0 && trainerPayments.length === 0 && (
-          <div className="text-sm text-neutral-400">No costs recorded.</div>
+          <div className="text-[13px] text-(--color-outline)">No costs recorded.</div>
         )}
         {expenses.map((e) => (
-          <div key={e.id} className="text-sm text-neutral-700">
+          <div key={e.id} className="font-(family-name:--font-data) text-[12px] text-(--color-on-surface-variant)">
             {formatINR(e.amount)} · {e.category} · {e.vendor ?? "—"}
           </div>
         ))}
         {trainerPayments.map((tp) => (
-          <div key={tp.id} className="text-sm text-neutral-700">
+          <div key={tp.id} className="font-(family-name:--font-data) text-[12px] text-(--color-on-surface-variant)">
             {formatINR(tp.amount)} · trainer_fee
           </div>
         ))}
@@ -116,8 +116,8 @@ export function TraceChain({
 
       <Step title="Net margin">
         <div
-          className={`text-2xl font-semibold ${
-            totalNetProfit >= 0 ? "text-emerald-600" : "text-rose-600"
+          className={`font-(family-name:--font-data) text-[22px] font-semibold ${
+            totalNetProfit >= 0 ? "text-(--color-profit-600)" : "text-(--color-loss-600)"
           }`}
         >
           {formatINR(totalNetProfit)}

@@ -4,16 +4,28 @@ import type { CollectionsAgingRow } from "@/lib/queries";
 
 export function CollectionsTable({ rows }: { rows: CollectionsAgingRow[] }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-      <table className="w-full text-left text-sm">
+    <div className="overflow-hidden rounded-lg border border-(--color-outline-variant) bg-(--color-surface-container-lowest)">
+      <table className="w-full border-collapse text-left">
         <thead>
-          <tr className="border-b border-neutral-200 text-neutral-500">
-            <th className="px-6 py-3 font-medium">Party</th>
-            <th className="px-6 py-3 font-medium">Batch</th>
-            <th className="px-6 py-3 font-medium">Amount due</th>
-            <th className="px-6 py-3 font-medium">Due on</th>
-            <th className="px-6 py-3 font-medium">Days overdue</th>
-            <th className="px-6 py-3 font-medium">Rupees at risk</th>
+          <tr className="h-8 border-b border-(--color-outline-variant) bg-(--color-surface)">
+            <th className="px-4 font-(family-name:--font-ui) text-[11px] font-semibold uppercase tracking-wider text-(--color-on-surface-variant)">
+              Party
+            </th>
+            <th className="px-4 font-(family-name:--font-ui) text-[11px] font-semibold uppercase tracking-wider text-(--color-on-surface-variant)">
+              Batch
+            </th>
+            <th className="px-4 text-right font-(family-name:--font-ui) text-[11px] font-semibold uppercase tracking-wider text-(--color-on-surface-variant)">
+              Amount due
+            </th>
+            <th className="px-4 font-(family-name:--font-ui) text-[11px] font-semibold uppercase tracking-wider text-(--color-on-surface-variant)">
+              Due on
+            </th>
+            <th className="px-4 text-right font-(family-name:--font-ui) text-[11px] font-semibold uppercase tracking-wider text-(--color-on-surface-variant)">
+              Days overdue
+            </th>
+            <th className="px-4 text-right font-(family-name:--font-ui) text-[11px] font-semibold uppercase tracking-wider text-(--color-on-surface-variant)">
+              Rupees at risk
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -22,35 +34,38 @@ export function CollectionsTable({ rows }: { rows: CollectionsAgingRow[] }) {
             return (
               <tr
                 key={row.paymentId}
-                className="border-b border-neutral-100 last:border-0 hover:bg-neutral-50"
+                className="h-10 border-b border-(--color-surface-container-low) last:border-0 hover:bg-(--color-surface-container-low)"
               >
-                <td className="px-6 py-4 font-medium text-neutral-900">
+                <td className="px-4 text-[13px] font-medium text-(--color-on-surface)">
                   {row.partyName ?? "—"}
                 </td>
-                <td className="px-6 py-4 text-neutral-600">
+                <td className="px-4 text-[13px] text-(--color-on-surface-variant)">
                   <Link
-                    href={`/dashboard`}
-                    className="hover:text-neutral-900 hover:underline"
+                    href="/dashboard"
+                    className="hover:text-(--color-accent-500) hover:underline"
                   >
                     {row.batchName ?? "—"}
                   </Link>
                 </td>
-                <td className="px-6 py-4 text-neutral-600">
+                <td className="px-4 text-right font-(family-name:--font-data) text-[13px] text-(--color-on-surface-variant)">
                   {formatINR(row.amount)}
                 </td>
-                <td className="px-6 py-4 text-neutral-600">{row.dueOn}</td>
-                <td className="px-6 py-4">
+                <td className="px-4 font-(family-name:--font-data) text-[13px] text-(--color-on-surface-variant)">
+                  {row.dueOn}
+                </td>
+                <td className="px-4 text-right">
                   <span
                     className={
-                      overdue
-                        ? "font-medium text-rose-600"
-                        : "text-neutral-500"
+                      "font-(family-name:--font-data) text-[13px] " +
+                      (overdue
+                        ? "font-medium text-(--color-loss-600)"
+                        : "text-(--color-on-surface-variant)")
                     }
                   >
                     {row.daysOverdue}
                   </span>
                 </td>
-                <td className="px-6 py-4 font-semibold tabular-nums text-rose-600">
+                <td className="px-4 text-right font-(family-name:--font-data) text-[13px] font-semibold text-(--color-loss-600)">
                   {formatINR(row.rupeesAtRisk)}
                 </td>
               </tr>
@@ -58,7 +73,7 @@ export function CollectionsTable({ rows }: { rows: CollectionsAgingRow[] }) {
           })}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={6} className="px-6 py-10 text-center text-neutral-400">
+              <td colSpan={6} className="px-4 py-10 text-center text-[13px] text-(--color-outline)">
                 Nothing outstanding.
               </td>
             </tr>

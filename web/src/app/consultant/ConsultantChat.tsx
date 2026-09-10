@@ -20,10 +20,16 @@ const EXAMPLE_QUESTIONS = [
   "What's outstanding in collections right now?",
 ];
 
+function formatCellValue(value: unknown): string {
+  if (value === null || value === undefined) return "—";
+  return String(value);
+}
+
 export function ConsultantChat() {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ConsultantResponse | null>(null);
+  const [sqlExpanded, setSqlExpanded] = useState(true);
 
   async function ask(q: string) {
     const trimmed = q.trim();
@@ -60,93 +66,174 @@ export function ConsultantChat() {
           | undefined)
       : undefined;
 
-  return (
-    <div>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          ask(question);
-        }}
-        className="flex gap-3"
-      >
-        <input
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Ask about batch profit, collections, or totals…"
-          className="flex-1 rounded-full border border-neutral-200 bg-white px-5 py-3 text-sm text-neutral-900 shadow-sm outline-none focus:border-neutral-400"
-        />
-        <button
-          type="submit"
-          disabled={loading || !question.trim()}
-          className="rounded-full bg-neutral-900 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-neutral-700 disabled:opacity-50"
-        >
-          {loading ? "Thinking…" : "Ask"}
-        </button>
-      </form>
+  const columns = result && result.ok && result.rows.length > 0 ? Object.keys(result.rows[0]) : [];
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {EXAMPLE_QUESTIONS.map((q) => (
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Natural query pipeline */}
+      <div className="rounded-lg border border-(--color-outline-variant) bg-(--color-surface-container-lowest) p-4">
+        <div className="flex items-center justify-between pb-3">
+          <span className="font-(family-name:--font-data) text-[11px] uppercase tracking-wider text-(--color-on-surface-variant)">
+            Natural query
+          </span>
+          <span className="font-(family-name:--font-data) text-[11px] text-(--color-outline)">
+            Read-only · 3 whitelisted views
+          </span>
+        </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            ask(question);
+          }}
+          className="flex items-center gap-2 rounded-md border border-(--color-outline-variant) bg-(--color-surface) px-2 py-1"
+        >
+          <span className="font-(family-name:--font-data) text-[13px] font-semibold text-(--color-accent-500)">
+            &gt;
+          </span>
+          <input
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="Ask about batch profit, collections, or totals…"
+            className="h-8 flex-1 bg-transparent font-(family-name:--font-data) text-[13px] text-(--color-on-surface) outline-none placeholder:text-(--color-outline)"
+          />
           <button
-            key={q}
-            onClick={() => {
-              setQuestion(q);
-              ask(q);
-            }}
-            disabled={loading}
-            className="rounded-full border border-neutral-200 bg-white px-4 py-1.5 text-xs text-neutral-500 hover:border-neutral-400 hover:text-neutral-900 disabled:opacity-50"
+            type="submit"
+            disabled={loading || !question.trim()}
+            className="h-8 shrink-0 rounded-md bg-(--color-accent-500) px-3 text-[13px] font-medium text-white transition-colors hover:bg-(--color-accent-600) disabled:opacity-50"
           >
-            {q}
+            {loading ? "Thinking…" : "Execute"}
           </button>
-        ))}
+        </form>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {EXAMPLE_QUESTIONS.map((q) => (
+            <button
+              key={q}
+              onClick={() => {
+                setQuestion(q);
+                ask(q);
+              }}
+              disabled={loading}
+              className="rounded bg-(--color-surface-container) px-2 py-1 font-(family-name:--font-data) text-[11px] text-(--color-on-surface-variant) transition-colors hover:bg-(--color-surface-container-high) disabled:opacity-50"
+            >
+              {q}
+            </button>
+          ))}
+        </div>
       </div>
 
       {result && (
-        <div className="mt-8">
+        <>
           {result.ok ? (
-            <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-              <div className="flex items-start justify-between gap-4">
-                <p className="text-lg text-neutral-900">{result.answer}</p>
-                <span className="shrink-0 rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-500">
-                  {result.source === "cache" ? "cached" : "live"}
-                </span>
-              </div>
-
-              <div>
-                <div className="mb-1 text-xs font-medium uppercase tracking-wide text-neutral-400">
-                  SQL
+            <>
+              {/* Synthesis summary */}
+              <div className="rounded-lg border border-(--color-outline-variant) bg-(--color-surface-container-lowest) p-4">
+                <div className="mb-1 flex items-center gap-2">
+                  <span className="font-(family-name:--font-data) text-[11px] uppercase tracking-wider text-(--color-outline)">
+                    Answer
+                  </span>
+                  <span className="rounded bg-(--color-surface-container) px-1.5 py-0.5 font-(family-name:--font-data) text-[10px] font-medium uppercase text-(--color-on-surface-variant)">
+                    {result.source === "cache" ? "cached" : "live"}
+                  </span>
                 </div>
-                <pre className="overflow-x-auto rounded-xl bg-neutral-900 p-4 text-xs text-neutral-100">
-                  <code>{result.sql}</code>
-                </pre>
+                <p className="text-[15px] font-medium leading-snug text-(--color-on-surface)">
+                  {result.answer}
+                </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3 pt-1">
+              {/* Tabular output */}
+              {result.rows.length > 0 && (
+                <div className="overflow-hidden rounded-lg border border-(--color-outline-variant) bg-(--color-surface-container-lowest)">
+                  <div className="flex items-center justify-between border-b border-(--color-outline-variant) px-4 py-2">
+                    <span className="text-[13px] font-semibold text-(--color-on-surface)">
+                      Result
+                    </span>
+                    <span className="font-(family-name:--font-data) text-[11px] text-(--color-outline)">
+                      {result.rows.length} row{result.rows.length === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-left">
+                      <thead>
+                        <tr className="h-8 bg-(--color-surface)">
+                          {columns.map((col) => (
+                            <th
+                              key={col}
+                              className="px-4 font-(family-name:--font-ui) text-[11px] font-semibold uppercase tracking-wider text-(--color-on-surface-variant)"
+                            >
+                              {col}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {result.rows.map((row, i) => (
+                          <tr
+                            key={i}
+                            className="h-10 border-t border-(--color-surface-container-low)"
+                          >
+                            {columns.map((col) => (
+                              <td
+                                key={col}
+                                className="px-4 font-(family-name:--font-data) text-[13px] text-(--color-on-surface)"
+                              >
+                                {formatCellValue(row[col])}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* SQL block */}
+              <div className="overflow-hidden rounded-lg border border-(--color-outline-variant) bg-(--color-surface-container-lowest)">
+                <button
+                  onClick={() => setSqlExpanded((v) => !v)}
+                  className="flex w-full items-center justify-between px-4 py-2.5 text-left hover:bg-(--color-surface-container-low)"
+                >
+                  <span className="text-[13px] font-semibold text-(--color-on-surface)">
+                    SQL executed
+                  </span>
+                  <span className="text-[11px] text-(--color-outline)">
+                    {sqlExpanded ? "Collapse" : "Expand"}
+                  </span>
+                </button>
+                {sqlExpanded && (
+                  <div className="px-4 pb-4">
+                    <pre className="overflow-x-auto rounded-md bg-[#1a1c20] p-3 font-(family-name:--font-data) text-[12px] leading-relaxed text-[#e2e2e8]">
+                      <code>{result.sql}</code>
+                    </pre>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-wrap items-center gap-2">
                 {firstBatchId && (
                   <Link
                     href="/dashboard"
-                    className="rounded-full border border-neutral-200 px-4 py-2 text-sm hover:bg-neutral-50"
+                    className="rounded-md border border-(--color-outline-variant) px-3 py-1.5 text-[13px] text-(--color-on-surface) hover:bg-(--color-surface-container-low)"
                   >
-                    View trace →
+                    Open in traceability →
                   </Link>
                 )}
                 <button
                   onClick={exportToExcel}
                   disabled={result.rows.length === 0}
-                  className="rounded-full border border-neutral-200 px-4 py-2 text-sm hover:bg-neutral-50 disabled:opacity-40"
+                  className="rounded-md border border-(--color-outline-variant) px-3 py-1.5 text-[13px] text-(--color-on-surface) hover:bg-(--color-surface-container-low) disabled:opacity-40"
                 >
-                  Export to Excel
+                  Export to Excel (.xlsx)
                 </button>
-                <span className="text-xs text-neutral-400">
-                  {result.rows.length} row{result.rows.length === 1 ? "" : "s"}
-                </span>
               </div>
-            </div>
+            </>
           ) : (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
+            <div className="rounded-lg border border-(--color-warn-600)/30 bg-(--color-warn-100) p-4 text-[13px] text-(--color-warn-600)">
               {result.message}
             </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );
