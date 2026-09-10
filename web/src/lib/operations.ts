@@ -6,7 +6,7 @@ import { requireMoney,requireText,requireUuid,isDate } from "./validation";
 import { createLead,convertLead,createBatch,enrollStudent,raiseInvoice,recordPayment,recordExpense,recordTrainerPayment } from "./actions";
 import type { Permission } from "./permissions";
 export type FormResult={ok:boolean;message:string};
-const groups:Record<string,Permission>={lead:"crm",convert:"crm",activity:"crm",quotation:"crm",agreement:"crm",party:"training",course:"training",batch:"training",enroll:"training",attendance:"training",batchStatus:"training",invoice:"finance",payment:"finance",settle:"finance",expense:"finance",trainerPayment:"finance"};
+const groups:Record<string,Permission>={lead:"crm",convert:"crm",activity:"crm",quotation:"crm",agreement:"crm",leadEdit:"crm",party:"training",course:"training",batch:"training",enroll:"training",attendance:"training",batchStatus:"training",batchEdit:"trainingWrite",invoice:"finance",payment:"finance",settle:"finance",expense:"finance",trainerPayment:"finance",refund:"finance"};
 export async function submitOperation(_previous:FormResult,form:FormData):Promise<FormResult>{
  const get=(key:string)=>String(form.get(key)??"").trim();
  const kind=get("kind");if(!Object.hasOwn(groups,kind))return {ok:false,message:"Unknown operation."};
@@ -25,6 +25,18 @@ export async function submitOperation(_previous:FormResult,form:FormData):Promis
   switch(kind){
    case "lead": await createLead({name:text("name"),kind:get("partyKind")==="person"?"person":"org",email:get("email"),phone:get("phone"),source:get("source")});break;
    case "convert": await convertLead({enquiryId:uuid("enquiryId")});break;
+   case "leadEdit":{
+    const id=uuid("enquiryId");
+    const found=await tx.execute(sql`select party_id from enquiry where id=${id}::uuid for update`);
+    if(!found.rows[0])throw new Error("Lead not found.");
+    const partyId=String(found.rows[0].party_id);
+    const name=text("name");const email=get("email");const phone=get("phone");const source=get("source");
+    if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error("Invalid email.");
+    await tx.execute(sql`update party set name=${name},email=${email||null},phone=${phone||null} where id=${partyId}::uuid`);
+    await tx.execute(sql`update enquiry set source=${source||null} where id=${id}::uuid`);
+    await event("lead.updated","enquiry",id,null,{name,email:email||null,phone:phone||null,source:source||null});
+    break;
+   }
    case "activity":case "agreement":case "quotation":{
     const id=uuid("enquiryId");const found=await tx.execute(sql`select party_id from enquiry where id=${id}::uuid for update`);if(!found.rows[0])throw new Error("Lead not found.");const partyId=String(found.rows[0].party_id);
     if(kind==="quotation"){
@@ -48,6 +60,18 @@ export async function submitOperation(_previous:FormResult,form:FormData):Promis
    }
    case "batch": await createBatch({courseId:uuid("courseId"),name:text("name"),sourceLeadId:get("enquiryId")||undefined,trainerId:get("trainerId")||undefined,location:get("location"),startsOn:get("startsOn")||undefined,endsOn:get("endsOn")||undefined});break;
    case "enroll": await enrollStudent({batchId:uuid("batchId"),studentId:uuid("studentId")});break;
+   case "batchEdit":{
+    const id=uuid("batchId");
+    const name=text("name");const location=get("location");
+    const startsOn=get("startsOn")||null;const endsOn=get("endsOn")||null;
+    if(startsOn&&!isDate(startsOn))throw new Error("Invalid start date.");
+    if(endsOn&&!isDate(endsOn))throw new Error("Invalid end date.");
+    if(startsOn&&endsOn&&endsOn<startsOn)throw new Error("End date must follow start date.");
+    const changed=await tx.execute(sql`update batch set name=${name},location=${location||null},starts_on=${startsOn}::date,ends_on=${endsOn}::date where id=${id}::uuid returning id`);
+    if(!changed.rows.length)throw new Error("Batch not found.");
+    await event("batch.details_updated","batch",id,id,{name,location:location||null,startsOn,endsOn});
+    break;
+   }
    case "batchStatus":{
     const id=uuid("batchId"),status=get("status");if(!["planned","running","completed","cancelled"].includes(status))throw new Error("Invalid status.");
     const changed=await tx.execute(sql`update batch set status=${status}::batch_status where id=${id}::uuid returning id`);if(!changed.rows.length)throw new Error("Batch not found.");await event("batch.updated","batch",id,id,{status});break;
@@ -79,6 +103,29 @@ export async function submitOperation(_previous:FormResult,form:FormData):Promis
     if(rows.rows.length){const inv=await tx.execute(sql`select batch_id from invoice where id=${invoiceId}::uuid`);await event("payment.settled","payment",id,String(inv.rows[0].batch_id),{amount:rows.rows[0].amount});
      await tx.execute(sql`update invoice set status=case when (select coalesce(sum(amount),0) from payment where invoice_id=${invoiceId}::uuid and paid_at is not null)>=(select coalesce(sum(amount-discount),0) from invoice_line where invoice_id=${invoiceId}::uuid) then 'paid'::invoice_status else 'part_paid'::invoice_status end where id=${invoiceId}::uuid`);
     }break;
+   }
+   case "refund":{
+    const id=uuid("paymentId");
+    const amount=money("amount");
+    const found=await tx.execute(sql`select p.invoice_id,p.amount as paid_amount,i.batch_id from payment p join invoice i on i.id=p.invoice_id where p.id=${id}::uuid and p.paid_at is not null for update of p`);
+    if(!found.rows[0])throw new Error("This installment has not been received, so it cannot be refunded.");
+    const invoiceId=String(found.rows[0].invoice_id);const batchId=String(found.rows[0].batch_id);
+    // Already-refunded amount against this specific payment, read from the
+    // ledger (the actual source of truth for "which original payment does
+    // this refund event belong to"), so a payment can only ever be
+    // refunded up to what was actually collected on it -- never more, and
+    // a retried/duplicate refund can't double-count.
+    const already=await tx.execute(sql`select coalesce(sum((-amount)),0) as refunded from ledger_event where event_type='payment.refunded' and payload->>'originalPaymentId'=${id}`);
+    const refundedSoFar=Number(already.rows[0].refunded);
+    const paidAmount=Number(found.rows[0].paid_amount);
+    if(refundedSoFar+Number(amount)>paidAmount+0.001)throw new Error("This exceeds what was actually collected on this installment.");
+    const rows=await tx.execute(sql`insert into payment(invoice_id,amount,method,paid_at) values(${invoiceId}::uuid,${"-"+amount},'refund',now()) returning id`);
+    await event("payment.refunded","payment",String(rows.rows[0].id),batchId,{amount,originalPaymentId:id});
+    await tx.execute(sql`update invoice set status=case
+      when (select coalesce(sum(amount),0) from payment where invoice_id=${invoiceId}::uuid and paid_at is not null)
+        >= (select coalesce(sum(amount-discount),0) from invoice_line where invoice_id=${invoiceId}::uuid)
+      then 'paid'::invoice_status else 'part_paid'::invoice_status end where id=${invoiceId}::uuid`);
+    break;
    }
    case "expense": await recordExpense({batchId:uuid("batchId"),amount:money("amount"),category:get("category") as "venue",vendor:get("vendor")});break;
    case "trainerPayment": await recordTrainerPayment({batchId:uuid("batchId"),trainerId:uuid("trainerId"),amount:money("amount")});break;

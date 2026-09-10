@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { authorizedTransaction } from "./transaction";
 export async function crmData(){return authorizedTransaction("crm",async tx=>{
- const leads=await tx.execute(sql`select e.id,p.name,p.email,e.stage,e.source,e.created_at::text from enquiry e join party p on p.id=e.party_id order by e.created_at desc limit 250`);
+ const leads=await tx.execute(sql`select e.id,p.name,p.email,p.phone,e.stage,e.source,e.created_at::text from enquiry e join party p on p.id=e.party_id order by e.created_at desc limit 250`);
  const activities=await tx.execute(sql`select a.id,p.name,a.kind,a.note,a.occurred_at::text from activity a left join party p on p.id=a.party_id order by a.occurred_at desc limit 50`);
  const quotations=await tx.execute(sql`select q.id,p.name,q.amount,q.status from quotation q join party p on p.id=q.party_id order by q.created_at desc limit 50`);
  return {leads:leads.rows,activities:activities.rows,quotations:quotations.rows};
@@ -20,7 +20,9 @@ export async function financeData(){return authorizedTransaction("finance",async
  coalesce((select sum(amount-discount) from invoice_line where invoice_id=i.id),0) as amount,
  coalesce((select sum(amount) from payment where invoice_id=i.id and paid_at is not null),0) as paid
  from invoice i join party p on p.id=i.party_id left join batch b on b.id=i.batch_id order by i.issued_at desc limit 250`);
- const payments=await tx.execute(sql`select p.id,i.id as invoice_id,b.name as batch,p.amount,p.due_on::text,p.paid_at::text,p.method from payment p join invoice i on i.id=p.invoice_id left join batch b on b.id=i.batch_id order by p.paid_at nulls first,p.due_on limit 250`);
+ const payments=await tx.execute(sql`select p.id,i.id as invoice_id,b.name as batch,p.amount,p.due_on::text,p.paid_at::text,p.method,
+ coalesce((select sum((-le.amount)::numeric) from ledger_event le where le.event_type='payment.refunded' and le.payload->>'originalPaymentId'=p.id::text),0) as refunded
+ from payment p join invoice i on i.id=p.invoice_id left join batch b on b.id=i.batch_id order by p.paid_at nulls first,p.due_on limit 250`);
  const batches=await tx.execute(sql`select id,name from batch order by name`);
  const parties=await tx.execute(sql`select id,name,roles from party order by name`);
  return {invoices:invoices.rows,payments:payments.rows,batches:batches.rows,parties:parties.rows};
