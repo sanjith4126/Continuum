@@ -51,6 +51,12 @@ export default async function DashboardPage({
             >
               Ask the consultant
             </Link>
+            <Link
+              href="/assistant"
+              className="text-sm text-neutral-500 hover:text-neutral-900"
+            >
+              Student assistant
+            </Link>
             <Suspense fallback={null}>
               <AsOfControl />
             </Suspense>

@@ -161,6 +161,16 @@ export async function getPartyById(partyId: string) {
   return rows[0] ?? null;
 }
 
+// For the /assistant demo-mode student picker only — see the identity note
+// in src/app/api/assistant/route.ts. Not an auth listing; just the seeded
+// students to choose "who's asking" from in a project with no real login.
+export async function listStudents() {
+  const rows = await db.execute(
+    sql`select id, name from party where 'student' = any(roles) order by name`
+  );
+  return rows.rows as { id: string; name: string }[];
+}
+
 export async function getPaymentsForInvoices(invoiceIds: string[]) {
   if (invoiceIds.length === 0) return [];
   return db.select().from(payment).where(inArray(payment.invoiceId, invoiceIds));
