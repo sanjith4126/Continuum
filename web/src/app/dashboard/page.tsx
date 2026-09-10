@@ -1,10 +1,16 @@
 import { requireUser } from "@/lib/auth";
 import { Suspense } from "react";
+import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { KpiCard } from "@/components/KpiCard";
 import { BatchPnlTable } from "@/components/BatchPnlTable";
 import { AsOfControl } from "./AsOfControl";
-import { getBatchPnl, getBatchPnlAsOf, getDashboardKpis } from "@/lib/queries";
+import {
+  getBatchPnl,
+  getBatchPnlAsOf,
+  getDashboardKpis,
+  getLeadPipeline,
+} from "@/lib/queries";
 import { formatINR } from "@/lib/format";
 import { isDate } from "@/lib/validation";
 
@@ -17,9 +23,10 @@ export default async function DashboardPage({
   const { asOf: requestedDate } = await searchParams;
   const asOf = isDate(requestedDate) ? requestedDate : undefined;
 
-  const [kpis, batchRows] = await Promise.all([
+  const [kpis, batchRows, pipeline] = await Promise.all([
     getDashboardKpis(),
     asOf ? getBatchPnlAsOf(asOf) : getBatchPnl(),
+    getLeadPipeline(),
   ]);
 
   const netProfit = Number(kpis.netProfit);
@@ -43,15 +50,48 @@ export default async function DashboardPage({
 
         {requestedDate && !asOf && <p role="alert" className="mt-4 text-sm text-(--color-loss-600)">Invalid date. Showing current results.</p>}
         {asOf && <p className="mt-4 text-sm text-(--color-outline)">KPI cards show current totals. The batch table shows the selected date through end of day (India time).</p>}
-        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiCard label="Revenue" value={formatINR(kpis.revenue)} />
-          <KpiCard label="Collected" value={formatINR(kpis.collected)} />
-          <KpiCard label="Outstanding" value={formatINR(kpis.outstanding)} />
-          <KpiCard
-            label="Net profit"
-            value={formatINR(kpis.netProfit)}
-            tone={netProfit >= 0 ? "positive" : "negative"}
-          />
+
+        <div className="mt-6">
+          <div className="mb-2 flex items-baseline justify-between">
+            <h2 className="text-[14px] font-semibold text-(--color-on-surface)">
+              Pipeline
+            </h2>
+            <Link
+              href="/crm"
+              className="text-[12px] text-(--color-accent-500) hover:underline"
+            >
+              Open CRM →
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <KpiCard label="Total leads" value={String(pipeline.totalLeads)} />
+            <KpiCard label="Won" value={String(pipeline.won)} tone="positive" />
+            <KpiCard label="Open" value={String(pipeline.open)} />
+            <KpiCard
+              label="Conversion rate"
+              value={
+                pipeline.won + pipeline.lost === 0
+                  ? "—"
+                  : `${Math.round(pipeline.conversionRate * 100)}%`
+              }
+            />
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <h2 className="mb-2 text-[14px] font-semibold text-(--color-on-surface)">
+            Financials
+          </h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <KpiCard label="Revenue" value={formatINR(kpis.revenue)} />
+            <KpiCard label="Collected" value={formatINR(kpis.collected)} />
+            <KpiCard label="Outstanding" value={formatINR(kpis.outstanding)} />
+            <KpiCard
+              label="Net profit"
+              value={formatINR(kpis.netProfit)}
+              tone={netProfit >= 0 ? "positive" : "negative"}
+            />
+          </div>
         </div>
 
         <div className="mt-8">

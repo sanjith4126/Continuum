@@ -36,6 +36,37 @@ export async function getDashboardKpis(): Promise<DashboardKpis> {
   return rows[0] as DashboardKpis;
 }
 
+export type LeadPipeline = {
+  totalLeads: number;
+  won: number;
+  lost: number;
+  open: number;
+  conversionRate: number; // won / (won + lost), 0 when no decided leads yet
+};
+
+// Lead/conversion figures for the management dashboard -- reads the same
+// enquiry table /crm already reads, just aggregated by stage. Same
+// permission gate as the rest of the dashboard.
+export async function getLeadPipeline(): Promise<LeadPipeline> {
+  await requireUser("dashboard");
+  const result = await db.execute(sql`
+    select
+      count(*)::int as total,
+      count(*) filter (where stage = 'won')::int as won,
+      count(*) filter (where stage = 'lost')::int as lost
+    from enquiry
+  `);
+  const row = result.rows[0] as { total: number; won: number; lost: number };
+  const decided = row.won + row.lost;
+  return {
+    totalLeads: row.total,
+    won: row.won,
+    lost: row.lost,
+    open: row.total - decided,
+    conversionRate: decided === 0 ? 0 : row.won / decided,
+  };
+}
+
 export async function getBatchPnl(): Promise<BatchPnlRow[]> {
   await requireUser("dashboard");
   const rows = await db
