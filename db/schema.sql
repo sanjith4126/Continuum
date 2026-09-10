@@ -180,7 +180,14 @@ create table ledger_event (
   event_type  event_type not null,
   entity_type text not null,                        -- 'enquiry' | 'batch' | 'invoice' ...
   entity_id   uuid,
-  batch_id    uuid references batch(id),            -- money events carry it → as-of P&L
+  batch_id    uuid,                                  -- money events carry it → as-of P&L
+  -- deliberately NOT a foreign key to batch(id): this is an immutable audit
+  -- log (see the append-only rules below) and must be able to outlive the
+  -- mutable row it describes. A batch can be deleted (e.g. test data
+  -- cleanup) without breaking or blocking on its historical ledger entries;
+  -- an orphaned batch_id here simply means "this event was about a batch
+  -- that no longer exists," which is exactly what an audit trail should
+  -- preserve, not prevent.
   amount      numeric(12,2),                        -- signed: +revenue, -cost
   payload     jsonb not null default '{}'
 );
