@@ -5,10 +5,13 @@
 // like it worked but never arrives.
 const RESEND_URL = "https://api.resend.com/emails";
 
-// Resend's shared onboarding sender works without verifying a custom
-// domain -- fine for a demo/hackathon deployment. Swap to a verified
-// domain address for real production use.
-const FROM = "Continuum <onboarding@resend.dev>";
+// The onboarding sender is suitable only for Resend's restricted test flow.
+// Real recipients require RESEND_FROM on a verified sending domain.
+const FROM = process.env.RESEND_FROM ?? "Continuum <onboarding@resend.dev>";
+
+export function passwordResetEmailConfigured() {
+  return Boolean(process.env.RESEND_API_KEY);
+}
 
 export async function sendPasswordResetEmail(to: string, tempPassword: string) {
   const apiKey = process.env.RESEND_API_KEY;
@@ -17,6 +20,7 @@ export async function sendPasswordResetEmail(to: string, tempPassword: string) {
   }
   const res = await fetch(RESEND_URL, {
     method: "POST",
+    signal: AbortSignal.timeout(10_000),
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",

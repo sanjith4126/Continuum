@@ -1,5 +1,5 @@
 -- ============================================================================
--- Continuum — event-sourced schema for a training-business platform
+-- Continuum — relational schema with an append-only audit ledger
 -- PostgreSQL 15+.  Run:  psql "$DATABASE_URL" -f schema.sql
 --
 -- Design in one line: the batch is the profit centre. Every rupee of revenue

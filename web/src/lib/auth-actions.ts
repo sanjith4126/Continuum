@@ -6,7 +6,7 @@ import { pool } from "@/db";
 import { currentUser, SESSION_COOKIE, takeQuota, tokenHash } from "./auth";
 import { hashPassword, verifyPassword, generateTempPassword } from "./password";
 import { homeFor } from "./permissions";
-import { sendPasswordResetEmail } from "./email";
+import { passwordResetEmailConfigured, sendPasswordResetEmail } from "./email";
 export async function login(_previous: {error:string}, form:FormData) {
  const email=String(form.get("email")??"").trim().toLowerCase();
  const password=String(form.get("password")??"");
@@ -47,6 +47,13 @@ export async function requestPasswordReset(_previous: {error:string;sent:boolean
   const {rows}=await pool.query(`select u.id from app_user u join auth_credential c on c.user_id=u.id where lower(u.email)=$1 and not c.disabled`,[email]);
   const user=rows[0];
   if (user) {
+   // Never rotate a usable credential when delivery is unavailable: doing
+   // that would lock the user out while the generic anti-enumeration message
+   // claims an email was sent. The response remains identical externally.
+   if(!passwordResetEmailConfigured()){
+    console.error("[password-reset] skipped: RESEND_API_KEY is not configured");
+    return {error:"",sent:true,message:RESET_MESSAGE} as {error:string;sent:boolean;message?:string};
+   }
    const tempPassword=generateTempPassword();
    const hash=await hashPassword(tempPassword);
    const client=await pool.connect();
@@ -56,12 +63,12 @@ export async function requestPasswordReset(_previous: {error:string;sent:boolean
     await client.query("delete from auth_session where user_id=$1",[user.id]);
     await client.query("delete from password_reset where user_id=$1",[user.id]);
     await client.query("insert into ledger_event(actor_id,event_type,entity_type,entity_id) values(null,'password.reset_requested','app_user',$1)",[user.id]);
+    // Keep the credential change uncommitted until delivery succeeds. A
+    // provider error or timeout rolls back the password and existing sessions
+    // instead of silently locking the account.
+    await sendPasswordResetEmail(email,tempPassword);
     await client.query("commit");
    } catch(e) {await client.query("rollback");throw e;} finally{client.release();}
-   // Sending the email is best-effort from the caller's point of view (the
-   // response never reveals whether it succeeded), but a real failure is
-   // still logged server-side so an admin can notice delivery is broken.
-   await sendPasswordResetEmail(email,tempPassword).catch((e)=>{console.error("[password-reset] email send failed:",e instanceof Error?e.message:e);});
   }
  } catch (e) { console.error("[password-reset] failed:",e instanceof Error?e.message:e); }
  return {error:"",sent:true,message:RESET_MESSAGE} as {error:string;sent:boolean;message?:string};

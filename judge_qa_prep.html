@@ -1,0 +1,548 @@
+<!doctype html>
+<title>Continuum — Judge Q&A Prep</title>
+<style>
+:root{
+  --paper:#F7F5F0; --paper-2:#EFEBE2; --ink:#171512; --ink-soft:#59544C;
+  --line:#DDD6C8; --teal:#0E7A82; --teal-soft:#E3F1F1; --navy:#14224A;
+  --amber:#8A5A00; --amber-soft:#FBF0DA; --card:#FFFFFF;
+  --code-bg:#12100D; --code-ink:#E9E4D8;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#151311; --paper-2:#1C1916; --ink:#EDE8DD; --ink-soft:#A69E8E;
+    --line:#332E27; --teal:#4FC7CE; --teal-soft:#12302F; --navy:#9FB3E0;
+    --amber:#E0B45C; --amber-soft:#2B2210; --card:#1E1B17;
+    --code-bg:#0B0A08; --code-ink:#D8D2C4;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#151311; --paper-2:#1C1916; --ink:#EDE8DD; --ink-soft:#A69E8E;
+  --line:#332E27; --teal:#4FC7CE; --teal-soft:#12302F; --navy:#9FB3E0;
+  --amber:#E0B45C; --amber-soft:#2B2210; --card:#1E1B17;
+  --code-bg:#0B0A08; --code-ink:#D8D2C4;
+}
+@font-face{font-family:'Source Serif';src:local('Source Serif 4');}
+* { box-sizing:border-box; }
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  padding:0 16px; padding-block:0;
+}
+.wrap{ max-width:840px; margin:0 auto; padding-bottom:80px; }
+header.top{
+  padding-block:36px 24px; border-bottom:1px solid var(--line);
+}
+.eyebrow{
+  font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--teal); font-weight:700; margin:0 0 10px;
+}
+.badge{
+  display:inline-block; margin-left:10px; padding:2px 9px; border-radius:999px;
+  background:var(--teal); color:#fff; font-size:10.5px; font-weight:800;
+  letter-spacing:.06em; vertical-align:1px;
+}
+h1{
+  font-family:'Source Serif 4',Georgia,serif; font-weight:600;
+  font-size:clamp(28px,5vw,40px); line-height:1.12; margin:0 0 12px;
+  text-wrap:balance;
+}
+.sub{ color:var(--ink-soft); font-size:15px; line-height:1.55; max-width:60ch; margin:0; }
+.howto{
+  background:var(--card); border:1px solid var(--line); border-radius:10px;
+  padding:16px 18px; margin-top:20px; font-size:13.5px; line-height:1.6; color:var(--ink-soft);
+}
+.howto b{ color:var(--ink); }
+
+nav.tiernav{
+  position:sticky; top:0; z-index:5; background:var(--paper);
+  padding:14px 0; margin-bottom:8px; border-bottom:1px solid var(--line);
+  display:flex; gap:8px; flex-wrap:wrap;
+}
+nav.tiernav a{
+  font-size:12.5px; font-weight:600; text-decoration:none; color:var(--ink-soft);
+  background:var(--card); border:1px solid var(--line); border-radius:999px;
+  padding:7px 13px; white-space:nowrap;
+}
+nav.tiernav a:hover{ color:var(--teal); border-color:var(--teal); }
+
+section.tier{ padding-top:34px; }
+.tier-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:6px; }
+.tier-num{
+  font-family:'Source Serif 4',Georgia,serif; font-size:14px; font-weight:700;
+  color:var(--teal); background:var(--teal-soft); border-radius:6px;
+  padding:2px 9px;
+}
+.tier h2{
+  font-family:'Source Serif 4',Georgia,serif; font-size:22px; font-weight:600; margin:0;
+}
+.tier-desc{ color:var(--ink-soft); font-size:13.5px; margin:0 0 20px; max-width:62ch; }
+
+.q{
+  background:var(--card); border:1px solid var(--line); border-radius:10px;
+  margin-bottom:12px; overflow:hidden;
+}
+.q > summary{
+  cursor:pointer; list-style:none; padding:15px 18px; font-weight:600;
+  font-size:14.5px; display:flex; gap:10px; align-items:flex-start;
+  line-height:1.4;
+}
+.q > summary::-webkit-details-marker{ display:none; }
+.q > summary::before{
+  content:"+"; flex:none; width:20px; height:20px; border-radius:5px;
+  background:var(--paper-2); color:var(--teal); font-weight:800;
+  display:flex; align-items:center; justify-content:center; font-size:14px;
+  margin-top:1px;
+}
+.q[open] > summary::before{ content:"–"; }
+.q .a{
+  padding:2px 18px 18px 48px; color:var(--ink); font-size:14px; line-height:1.62;
+}
+.q .a p{ margin:0 0 10px; }
+.q .a p:last-child{ margin-bottom:0; }
+.q .a b{ color:var(--ink); }
+.say{
+  background:var(--teal-soft); border-left:3px solid var(--teal);
+  border-radius:0 8px 8px 0; padding:10px 14px; margin:10px 0; font-size:13.5px;
+  font-style:italic; color:var(--ink);
+}
+.say b{ font-style:normal; font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--teal); display:block; margin-bottom:4px; font-weight:700; }
+.warn{
+  background:var(--amber-soft); border-left:3px solid var(--amber);
+  border-radius:0 8px 8px 0; padding:10px 14px; margin:10px 0; font-size:13.5px; color:var(--ink);
+}
+.warn b{ color:var(--amber); }
+code, .code-inline{
+  font-family:ui-monospace,'SF Mono',Consolas,monospace; font-size:12.5px;
+  background:var(--paper-2); padding:1px 6px; border-radius:4px; color:var(--ink);
+}
+pre{
+  background:var(--code-bg); color:var(--code-ink); border-radius:8px;
+  padding:12px 14px; overflow-x:auto; font-size:12px; line-height:1.55;
+  font-family:ui-monospace,'SF Mono',Consolas,monospace; margin:10px 0;
+}
+pre code{ background:none; padding:0; color:inherit; }
+
+.pillbar{ display:flex; gap:6px; flex-wrap:wrap; margin:16px 0 0; }
+.pill{
+  font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px;
+  background:var(--paper-2); color:var(--ink-soft); border:1px solid var(--line);
+}
+
+.problem{
+  margin-top:48px; background:var(--navy); color:#EFF3FB; border-radius:14px;
+  padding:28px 26px; position:relative; overflow:hidden;
+}
+.problem::before{
+  content:""; position:absolute; right:-60px; top:-60px; width:200px; height:200px;
+  border-radius:50%; background:rgba(79,199,206,.12);
+}
+.problem .eyebrow{ color:#7FD8DE; }
+.problem h2{ font-family:'Source Serif 4',Georgia,serif; font-size:21px; margin:0 0 12px; }
+.problem p{ font-size:14px; line-height:1.65; color:#C9D3E8; margin:0 0 12px; max-width:64ch; }
+.problem .final{
+  font-style:italic; color:#fff; border-top:1px solid rgba(255,255,255,.15);
+  padding-top:14px; margin-top:14px; font-size:14.5px;
+}
+
+footer.end{ text-align:center; color:var(--ink-soft); font-size:12px; padding:40px 0 10px; }
+
+@media (max-width:480px){
+  .q .a{ padding-left:18px; }
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow">Continuum · RAMPeX PS-04<span class="badge">FINALS · TOP 12</span></p>
+    <h1>Judge Q&amp;A prep</h1>
+    <p class="sub">Basics to hard, in the order a judge actually escalates. Every answer here is grounded in the real code and was verified against the live database, not guessed — read them, then close the answers and quiz yourself out loud.</p>
+    <div class="howto">
+      <b>How to use this:</b> Tap a question to reveal the answer. The italic teal box under each answer is the exact sentence to <i>say</i> — memorize the shape of it, not the words. Read tier by tier, in order — each tier assumes you already know the one before it. New: §6 covers questions specific to the finals round (mobile, what's changed, what's next). The last section turns everything above into your problem-statement pitch.
+    </div>
+  </header>
+
+  <nav class="tiernav">
+    <a href="#t1">① Tech stack</a>
+    <a href="#t2">② How it works</a>
+    <a href="#t3">③ Security & data</a>
+    <a href="#t4">④ Hard / architecture</a>
+    <a href="#t5">⑤ "Why not X"</a>
+    <a href="#t6">⑥ Finals-specific</a>
+    <a href="#t7">⑦ Mobile responsive</a>
+    <a href="#pitch">Your pitch</a>
+  </nav>
+
+  <!-- ============ TIER 1 — BASICS ============ -->
+  <section class="tier" id="t1">
+    <div class="tier-head"><span class="tier-num">1</span><h2>Tech stack — the basics</h2></div>
+    <p class="tier-desc">The questions every judge opens with, to see if you can even name what you built.</p>
+
+    <details class="q">
+      <summary>What's the tech stack, top to bottom?</summary>
+      <div class="a">
+        <p><b>Frontend:</b> Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS 4.<br>
+        <b>Backend:</b> no separate backend service — Next.js Server Actions and Route Handlers run server-side logic directly, talking to Postgres through Drizzle ORM.<br>
+        <b>Database:</b> PostgreSQL, hosted on Neon (serverless Postgres).<br>
+        <b>Auth:</b> custom — scrypt password hashing, httpOnly session cookies. No third-party auth provider.<br>
+        <b>AI:</b> Groq's OpenAI-compatible API, running an open-weights model (<code>gpt-oss-20b</code>).<br>
+        <b>Deployment:</b> Vercel, auto-deployed from GitHub on push to <code>master</code>.</p>
+        <div class="say"><b>Say it like this</b>Next.js and TypeScript on top, Postgres on the bottom, and no separate backend server in between — Server Actions call the database directly, inside one transaction, per request.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>Why Next.js instead of a separate frontend + backend (e.g. React + Express)?</summary>
+      <div class="a">
+        <p>Server Actions let a form submit straight into server-side, transactional database code with no hand-written API route, no client-side fetch boilerplate, and no separate deployment to keep in sync. For a system where <i>every</i> write has to go through one authorization+transaction wrapper, having the framework do that plumbing for free was worth it more than framework flexibility.</p>
+        <div class="say"><b>Say it like this</b>It collapses the API layer — a form submit is a direct, typed, server-side function call inside a transaction. Fewer moving parts means fewer places for the authorization check to be accidentally skipped.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>Why Postgres and not MongoDB / Firebase / a NoSQL store?</summary>
+      <div class="a">
+        <p>The entire idea depends on relational joins staying cheap and correct: revenue rows and cost rows share a <code>batch_id</code> foreign key, and per-batch profit is a <code>GROUP BY</code> over that join. That's Postgres's home turf. It also gave two features for free that a NoSQL store doesn't have natively: <b>row-level security</b> (real per-role data isolation enforced by the database, not the app) and <b>rules/constraints</b> (the append-only ledger is enforced by a database rule, not a promise in application code).</p>
+        <div class="say"><b>Say it like this</b>The core idea — batch_id ties revenue and cost together — is a join. A relational database is the only sane place to make that join both fast and provably correct.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>What is Drizzle ORM, and why use it?</summary>
+      <div class="a">
+        <p>A lightweight TypeScript ORM. It's used here mostly for typed query building and schema types — the actual schema was hand-written in raw SQL (<code>db/schema.sql</code>) and Drizzle introspects it, rather than Drizzle owning the schema. That was deliberate: the schema needed real Postgres features (RLS policies, a rule blocking UPDATE/DELETE, custom enum types) that are easier to write directly in SQL than to fight an ORM's migration DSL for.</p>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>Why Groq instead of OpenAI or Anthropic's API for the AI features?</summary>
+      <div class="a">
+        <p>Cost and speed for a demo context — Groq's hosted inference is fast and has a generous free tier, which matters when you need the AI consultant to answer live, in front of judges, without a billing surprise. The model is an open-weights reasoning model (<code>gpt-oss-20b</code>) served through an OpenAI-compatible endpoint, so the integration code is portable if the model choice ever needs to change.</p>
+        <div class="say"><b>Say it like this</b>Groq gives us fast, cheap inference for a live demo — and because the AI's actual safety boundary is a database-level read-only grant, not the model provider, swapping models wouldn't change the security story at all.</div>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ TIER 2 — HOW IT WORKS ============ -->
+  <section class="tier" id="t2">
+    <div class="tier-head"><span class="tier-num">2</span><h2>How it actually works</h2></div>
+    <p class="tier-desc">One level past "what did you use" — the actual mechanics of a request.</p>
+
+    <details class="q">
+      <summary>Walk me through what happens when someone submits a form — say, "record a payment."</summary>
+      <div class="a">
+        <p>The form calls a Server Action, which calls one shared function: <code>authorizedTransaction(permission, fn)</code>. That function (1) checks the logged-in user actually has that permission, (2) opens a single Postgres transaction, (3) runs <code>SET LOCAL ROLE continuum_staff</code> to downgrade the database connection to a restricted role for the rest of that transaction, (4) sets two session variables — <code>app.user_role</code> and <code>app.party_id</code> — that Postgres's row-level security policies read, then (5) runs the actual insert inside that same transaction. So every write is authorized twice: once in application code, once by the database itself.</p>
+        <pre><code>export async function authorizedTransaction(permission, fn) {
+  const user = await requireUser(permission);
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`set local role continuum_staff`);
+    await tx.execute(sql`select set_config('app.user_role', ${user.role}, true),
+                                 set_config('app.party_id', ${user.partyId}, true)`);
+    return fn(tx, user);
+  });
+}</code></pre>
+        <div class="say"><b>Say it like this</b>Every write goes through one funnel function that checks permission, opens a transaction, and downgrades the database connection to a restricted role before the actual insert runs — so authorization is enforced twice, by two different systems.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>What stops a double-click from creating two payments, or a network retry duplicating a write?</summary>
+      <div class="a">
+        <p>Idempotency, built at the request level, not just disabling a button in the UI. Every mutating form generates a random UUID client-side <i>once</i> (<code>crypto.randomUUID()</code>, held in a <code>useRef</code> so it survives re-renders but not a real new submission) and sends it as a <code>requestId</code>. Server-side, before doing anything else, the code takes a Postgres advisory lock keyed on <code>hashtextextended(user_id + requestId)</code> — so two near-simultaneous copies of the exact same request serialize instead of racing — then checks an <code>operation_request</code> table keyed on <code>(user_id, request_id)</code>. If that row already exists, it returns the previously stored result instead of re-running the write.</p>
+        <div class="say"><b>Say it like this</b>A retry is safe by construction — the same request ID always resolves to the same stored result, because I check a request table before doing the write, guarded by a database advisory lock so two retries can't race each other.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>How is per-batch profit actually calculated? Walk through the math.</summary>
+      <div class="a">
+        <p>It's a Postgres view, <code>batch_pnl</code> — not code I wrote in TypeScript. Every revenue row (<code>invoice_line</code>) and every cost row (<code>expense</code>, <code>trainer_payment</code>) carries a <code>batch_id</code> foreign key. The view groups by that column, sums revenue on one side and cost on the other, and subtracts. The dashboard just <code>SELECT</code>s from that view — it never re-derives profit in application code, which means the number on screen and the number in the database can never disagree.</p>
+        <div class="formula-say" style="margin-top:8px">
+        <pre><code>net_profit =
+  SUM(invoice_line.amount - discount)
+  - SUM(expense.amount)
+  - SUM(trainer_payment.amount)
+  -- grouped by batch_id</code></pre>
+        </div>
+        <div class="say"><b>Say it like this</b>Profit isn't computed in my app — it's a GROUP BY in a Postgres view. The dashboard just reads it. That's the whole reason "per-batch net profit" can be a live number instead of a month-end spreadsheet.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>What is the "event log" / ledger, concretely? Is Continuum event-sourced?</summary>
+      <div class="a">
+        <p><b>No — this is worth being precise about if asked directly.</b> Continuum is a normal relational, transactional system with an append-only <i>audit log</i> alongside it, not an event-sourced system where state is rebuilt by replaying events. <code>ledger_event</code> is that audit table — every write in the system also inserts one row here: event type, entity affected, which batch it belongs to, and a signed amount if money moved. It's genuinely append-only: a Postgres <code>RULE</code> on that table turns <code>UPDATE</code> and <code>DELETE</code> into no-ops at the database level. Current business state comes straight from the operational tables (<code>invoice</code>, <code>payment</code>, <code>batch</code>...), never from replaying the ledger.</p>
+        <p>Historical / "as-of" P&amp;L works the same way — <code>batch_pnl_asof(date)</code> filters the operational financial records by their own effective timestamps, on or before the requested date. It is <i>not</i> replaying the event log to reconstruct a past state.</p>
+        <div class="say"><b>Say it like this</b>It's relational with an append-only audit log, not event-sourced — current state lives in the operational tables. The ledger gives me audit trail and traceability; historical P&amp;L is a query filtered by effective date, not a replay.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>How does the AI consultant turn a question into SQL, and get an answer back?</summary>
+      <div class="a">
+        <p>The user's question goes to Groq with a system prompt describing the three whitelisted views' schemas. The model returns SQL. Before that SQL ever runs, it goes through a validator (<code>sqlGuard.ts</code>) that checks it's read-only, touches only the three whitelisted views, and uses only a small allowlist of safe functions (SUM, COUNT, AVG, MIN, MAX, ROUND) — plus a second check that runs Postgres's own <code>EXPLAIN</code> on it, which catches anything regex-based rules could miss. Only then does it execute, using a database role that has <code>SELECT</code> on exactly those three views and nothing else, inside a read-only transaction with a statement timeout and a row cap. The UI shows the answer <i>and</i> the SQL that produced it, plus a trace link.</p>
+        <div class="say"><b>Say it like this</b>The model proposes SQL, a validator checks it before it runs, and then it executes under a database role that literally cannot see anything but three read-only views — so even a validator bypass can't leak data, because the database itself is the real boundary.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>How does the student assistant know which student it's talking to?</summary>
+      <div class="a">
+        <p>Not from anything typed into the chat — from the session. The logged-in user's <code>party_id</code> is set as a Postgres session variable (<code>app.party_id</code>) inside the transaction, and row-level security policies on <code>enrollment</code>, <code>attendance</code>, <code>invoice</code>, <code>payment</code> filter every query to rows belonging to that party. The assistant also doesn't do free-form SQL like the consultant — it only routes to one of two fixed, parameterless typed tools ("next class," "balance"), each of which runs under that same RLS-scoped connection. The model's only output is one word (SCHEDULE or BALANCE); it never sees or supplies an identity.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ TIER 3 — SECURITY & DATA ============ -->
+  <section class="tier" id="t3">
+    <div class="tier-head"><span class="tier-num">3</span><h2>Security &amp; data integrity</h2></div>
+    <p class="tier-desc">Where judges probe whether "secure" is a real claim or a slide word.</p>
+
+    <details class="q">
+      <summary>What is row-level security, exactly, and where is it actually enforced?</summary>
+      <div class="a">
+        <p>RLS is a Postgres feature: a policy attached to a table that filters every row a given database role can see or write, evaluated by Postgres itself — not by application code deciding "don't show this." A trainer's policy on <code>attendance</code>, for example, reads: only rows where the enrollment's batch is taught by <i>this session's</i> trainer (via <code>app.party_id</code>). I verified this two ways: through the normal app UI, and by connecting directly as the restricted role and issuing a raw query that tries to read another trainer's data — it comes back empty, proving the app-layer permission check isn't the only thing stopping it.</p>
+        <pre><code>create policy attendance_access on attendance for select using (
+  exists (select 1 from enrollment e join batch b on b.id = e.batch_id
+          where e.id = attendance.enrollment_id
+          and b.trainer_id = current_setting('app.party_id')::uuid)
+);</code></pre>
+        <div class="say"><b>Say it like this</b>RLS is enforced by Postgres, not by my code — I proved it by bypassing my own app layer entirely and querying the database directly as a restricted role. It still refused to return another trainer's data.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>How many database roles are there, and why more than one?</summary>
+      <div class="a">
+        <p>Three, each least-privilege for its purpose — separate from the <b>six business roles</b> (management, sales, ops, finance, trainer, student) the app itself has. <code>continuum_ai</code> — read-only, <code>SELECT</code> on exactly 3 views, zero grants on any base table, used only by the consultant. <code>continuum_app</code> — RLS-scoped reads, used by the student assistant. <code>continuum_staff</code> — RLS-scoped writes, used by every authenticated write in the app. None of them can bypass RLS (<code>NOBYPASSRLS</code>). The point of splitting them is that a bug in one feature's code can't accidentally grant it another feature's privileges — the ceiling is set at the database level, per role, not per code path.</p>
+        <div class="warn"><b>Don't conflate these</b>"6 roles" and "3 roles" are both correct answers to different questions — business roles (what a person is) vs. database roles (what a connection can do). Mixing them up mid-answer is the kind of slip a sharp judge will catch.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>Passwords — how are they stored, and how does login actually verify one?</summary>
+      <div class="a">
+        <p><code>scrypt</code> — a memory-hard hashing function, not a fast general-purpose hash like SHA-256 (which would be crackable at scale for passwords). Verification uses <code>timingSafeEqual</code> for the byte comparison, so the comparison time doesn't leak how many bytes matched. And if the email doesn't exist at all, the login code still runs a dummy hash comparison against a fixed value — so a wrong password and a nonexistent account take the same amount of time to reject, which stops someone from timing their way into discovering which emails have accounts. Session tokens themselves are stored server-side only as a SHA-256 hash — the raw token lives only in the browser's httpOnly cookie, so a leaked session table alone can't be replayed as a live session.</p>
+        <div class="say"><b>Say it like this</b>Even the failure path is designed — a wrong password and a non-existent account are indistinguishable in both the message and the response time.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>What happens with the forgot-password flow, technically?</summary>
+      <div class="a">
+        <p>It validates the email format, rate-limits attempts (both globally and per-email, using Postgres-backed counters), then looks up the account. Whether or not it exists, the response is the identical generic message — "if that email is registered, a new password has been sent" — for the same anti-enumeration reason as login. If it does exist: generate a random temp password, hash it, force <code>must_change=true</code>, invalidate all existing sessions for that user, log a <code>password.reset_requested</code> ledger event, and actually email the temp password via Resend. Next login forces a password change before anything else is accessible.</p>
+        <div class="warn"><b>Honest limitation</b>The email send happens after the database commit — if delivery fails, it's logged server-side but the user isn't told differently (by design, for anti-enumeration). A production version would want a durable outbox/queue so the write and the send commit atomically.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>How do you know the RLS policies and the app-layer permission checks actually agree with each other?</summary>
+      <div class="a">
+        <p>I ran a full authorization matrix: all 6 business roles against every write operation, checked through the normal app, and then the same unauthorized-write attempts repeated with the app-level check removed entirely — calling the database layer directly as if a permission bug existed. Every one was still blocked by RLS. That's the actual point of having two layers: even a bug in my own authorization logic wouldn't expose a real data leak, because the database enforces its own copy of the rule independently.</p>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>Is any of this actually verified live, or is it "should work"?</summary>
+      <div class="a">
+        <p>Verified live, deliberately — every number on the dashboard, the per-batch table, and invoice statuses was independently recomputed from raw tables and matched exactly. All 8 seeded accounts were logged into for real, across every route (72 role×route checks total), confirming correct access and correct denial (redirect to <code>/forbidden</code>, or a 401 JSON response for the AI API routes when unauthenticated). Security headers (HSTS, CSP, X-Frame-Options), the HTTPS redirect, and the session cookie flags (<code>httpOnly</code>, <code>secure</code>, <code>sameSite=Lax</code>) were all checked against the live deployed response, not just the code. This session's mobile-responsive fixes were also verified the same way — real Playwright screenshots at 375px/390px/768px/1280px against the live production build, not just "the build compiled."</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ TIER 4 — HARD / ARCHITECTURE ============ -->
+  <section class="tier" id="t4">
+    <div class="tier-head"><span class="tier-num">4</span><h2>Hard questions — architecture &amp; trade-offs</h2></div>
+    <p class="tier-desc">These test judgment, not recall. It's fine to reason out loud here.</p>
+
+    <details class="q">
+      <summary>Why an append-only audit log at all, if you're not event-sourced? Why not just normal tables with an <code>updated_at</code> column?</summary>
+      <div class="a">
+        <p>Because two of the brief's actual requirements are hard to fake with plain mutable rows: a real audit trail, and traceability from a lead to its financial outcome. An <code>updated_at</code> column tells you a row changed, not what it was before, who changed it, or why. The <code>ledger_event</code> table gives an explicit, provably-unmodifiable record of every meaningful action — enforced by a Postgres rule, not a convention. The cost is real: every write also has to emit an event. For a system whose entire pitch is traceability, that complexity buys the actual differentiator, not gold-plating.</p>
+        <div class="say"><b>Say it like this</b>The audit log isn't there to rebuild state — it's there so "who changed what, when" is a real, tamper-proof answer instead of a promise.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>Why enforce RLS at the database level instead of just checking permissions in your Server Actions? Isn't that redundant?</summary>
+      <div class="a">
+        <p>It's redundant on purpose — that's called defence-in-depth. App-layer checks are code I wrote, and code has bugs; I've already found and fixed two RLS policy bugs during testing that would have leaked data (documented in the commit history, not hidden). If the <i>only</i> thing stopping a student from reading another student's attendance is an <code>if</code> statement in a Server Action, one missed check anywhere in the codebase is a real leak. With RLS, that same mistake still gets caught by the database, because the restricted role physically cannot see rows outside its policy — independent of what my application code did or didn't check.</p>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>The AI consultant generates SQL from natural language. How do you actually know it can't leak data or run something destructive?</summary>
+      <div class="a">
+        <p>Because the safety boundary isn't the prompt or the model's good behavior — it's the database grant. <code>continuum_ai</code> has <code>SELECT</code> on exactly three views and zero grants on any base table or any other view. Even if the model were adversarially prompted to generate <code>DROP TABLE payment</code> or <code>SELECT * FROM app_user</code>, the connection it runs under would reject it at the database permission layer before Postgres even considers executing it. The SQL validator in front of that is real, but I explicitly documented it in the code as "defence-in-depth, not the actual boundary" — because I don't trust a regex to catch every SQL injection shape, but I do trust a Postgres grant, because that's the same mechanism every real production database's security rests on.</p>
+        <div class="say"><b>Say it like this</b>I don't trust the AI to behave — I trust the database to enforce a grant it can't talk its way around. The validator is a nice-to-have in front of a hard boundary, not the boundary itself.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>What's the actual security/consistency trade-off in the refund design? Why not just delete or edit the original payment?</summary>
+      <div class="a">
+        <p>Because the append-only rule means you literally can't edit or delete a payment row — and even if you could, that would break the "money in = sum of payment rows" invariant everything else relies on. A refund is instead recorded as a <i>new</i> payment row with a negative amount, and its link back to the original payment lives in the ledger event's payload, not in an overloaded column — I actually started by encoding it into <code>payment.method</code> as a hack and caught that mid-build, because it would have shown garbage strings like <code>refund:abc123</code> in the finance UI's method column and conflated "how it was paid" with "what it refunds." The server also independently checks a refund can never exceed what was actually collected on that installment, summed from the ledger — not trusted from the client.</p>
+        <div class="say"><b>Say it like this</b>A refund is a new ledger-tracked event, not a mutation — because the whole system's invariant is that money rows are never edited, only added, and I caught and fixed a real over-refund bug by making that check happen at the database read, not the form.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>How would this scale if you had 10,000 batches and 100,000 ledger events? Where does it break first?</summary>
+      <div class="a">
+        <p>Honestly: the reporting views that aggregate a growing financial history, plus external AI latency, would be the first real bottlenecks — not the React UI. The views (<code>batch_pnl</code>, <code>collections_aging</code>) are plain <code>GROUP BY</code>s, which Postgres indexes and plans well up to real production scale, but the as-of query filtering the whole financial history by effective date would need measured indexes or pre-aggregation at real volume. Rate limiting is currently per-instance Postgres counters, which is fine for a demo but would need a proper distributed store (Redis, etc.) under real concurrent load. I'd call this "production-shaped," not "production-scale" — the patterns are right, the scale headroom hasn't been load-tested past a few hundred batches.</p>
+        <div class="say"><b>Say it like this</b>The patterns are the right ones for scale — but I haven't load-tested past a demo-sized dataset, and I'd say that honestly rather than claim numbers I haven't verified.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>Why did you build this "with AI"? Doesn't that mean you don't really understand it?</summary>
+      <div class="a">
+        <p>I used AI as a pair-programmer, the same way I'd use a very fast, very well-read colleague — it wrote a lot of first-draft code and helped me move faster, but every architectural decision was mine: choosing the batch as the shared profit key, choosing to split into three database roles instead of one, catching and fixing the refund-encoding mistake myself mid-build, catching a real CSS layout bug in the mobile redesign by actually screenshotting it rather than trusting "the build passed." And I didn't just accept what was generated — I adversarially tested the security boundaries myself: connecting as the restricted database roles directly, trying to read data across role boundaries, checking the actual live HTTP responses and headers. If I didn't understand it, I couldn't have found or explained any of the bugs I found and fixed.</p>
+        <div class="say"><b>Say it like this</b>AI wrote code faster than I could type it — but I made the architecture calls, and I broke it myself to prove the security boundaries actually hold, not just to trust that they would.</div>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ TIER 5 — "WHY NOT" ============ -->
+  <section class="tier" id="t5">
+    <div class="tier-head"><span class="tier-num">5</span><h2>"Why didn't you just use—"</h2></div>
+    <p class="tier-desc">Comparison questions. Answer briefly, then pivot back to your differentiator.</p>
+
+    <details class="q">
+      <summary>Why not just use Zoho / Salesforce / an off-the-shelf CRM?</summary>
+      <div class="a">
+        <p>Those are excellent at the CRM half — pipeline, contacts, activities. None of them natively join a lead to the <i>cost</i> side of a batch (trainer fees, venue, materials) in the same record set. That join always happens in a spreadsheet at month-end, done by a human. That's the exact gap PS-04 is scoring.</p>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>Why not Arlo, which is actually a training-management system?</summary>
+      <div class="a">
+        <p>Arlo genuinely has deeper scheduling and a public course-booking site than we do — and we scoped that out on purpose (it's explicitly out-of-scope in our own project brief). But Arlo hands off accounting to Xero — it doesn't own per-batch profit inside its own record set either. We trade Arlo's scheduling depth for owning the full enquiry-to-margin chain natively.</p>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>Why not Odoo, since it's a full ERP with a training module?</summary>
+      <div class="a">
+        <p>Odoo can technically build this — it's a generic ERP framework. But "per-batch net profit as a first-class, pre-built number" isn't something it ships with; you'd configure and build it yourself, module by module. We built the batch-as-profit-centre model as the actual foundation of the schema, not a customization on top of a generic one.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ TIER 6 — FINALS-SPECIFIC ============ -->
+  <section class="tier" id="t6">
+    <div class="tier-head"><span class="tier-num">6</span><h2>Finals-round questions</h2></div>
+    <p class="tier-desc">You already cleared the first round — expect judges to probe what changed and what's still honest to admit.</p>
+
+    <details class="q">
+      <summary>What have you changed or added since you first qualified?</summary>
+      <div class="a">
+        <p>Four real things, not slide polish: (1) a forgot-password flow that actually sends a real email via Resend, with anti-enumeration built in from the start; (2) edit-lead and edit-batch forms, plus a full refund workflow that's ledger-tracked and capped at what was actually collected; (3) a security hardening pass this session — 14 new production database constraints, a fixed over-refund vulnerability, a fixed concurrent-attendance race, a dependency CVE removed, zero vulnerabilities in the production tree; (4) a mobile-responsive redesign across all 13 screens, including a real bug I found and fixed myself using Playwright screenshots, not just "the build passed."</p>
+        <div class="say"><b>Say it like this</b>Between rounds we didn't just polish the pitch — we hardened real financial invariants, fixed a real security bug, and made the whole app usable on a phone.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>Is the app actually mobile-responsive, or just "the site doesn't break"?</summary>
+      <div class="a">
+        <p>Genuinely redesigned, not just "doesn't overflow." Tables collapse into stacked cards below 640px instead of forcing horizontal scroll — a judge on a phone shouldn't have to swipe sideways through a table mid-demo. The sidebar nav becomes a bottom tab bar plus a slide-in drawer. Every button and collapsible form header meets a 44px minimum tap target. The login and forgot-password pages were specifically fixed this session — I found a real CSS Grid bug (the brand panel and form section were both stretching to fill the full viewport height on phones, leaving a large dead gap above the form) and fixed it, verified with actual Playwright screenshots at 375px/390px/768px, not just a passing build.</p>
+        <div class="warn"><b>Honest state</b>This was finished very close to presenting — if a judge tries something I haven't personally screenshotted (a less-common screen at an unusual width), say so rather than claim blanket coverage.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>What's the single most important technical decision in this project?</summary>
+      <div class="a">
+        <p>Making the batch the common profitability key. Every other decision — the schema shape, the audit log, the AI's grounding, even the refund design — exists to protect or extend that one join. It's what turns "we have a CRM and a billing module" into "we have one verifiable chain from enquiry to margin."</p>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>What would you build next, given another month?</summary>
+      <div class="a">
+        <p>In priority order: an invoice PDF/CSV export (right now invoices only exist as UI rows — a judge asking "can I hand this to an accountant" currently gets no); bulk operations (bulk attendance marking, bulk overdue-invoice reminders — the one-row-at-a-time friction is the first thing a real ops person would complain about); a management-facing audit-log viewer, since the append-only ledger is a core claim but nobody can currently browse it as a feature; and observability plus a durable job queue for the email-sending path. Multi-tenancy and pgvector lead dedup are real future work but deliberately not next — they're bigger architectural changes, not bounded features.</p>
+        <div class="say"><b>Say it like this</b>The roadmap isn't "make the demo shinier" — it's "close the three gaps a real day-to-day user would hit first," in the order they'd actually hit them.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>Is this production-ready?</summary>
+      <div class="a">
+        <p>Ready for a controlled pilot after the checks I've already run — build, lint, typecheck, integration tests, RLS reconciliation, a full role×route matrix, dependency audits, live security headers. Not enterprise-certified or proven at scale — no load testing past a demo-sized dataset, no distributed rate limiting, no backup-restore drill performed. I'd rather say that precisely than claim a guarantee I haven't earned.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ TIER 7 — MOBILE RESPONSIVE ============ -->
+  <section class="tier" id="t7">
+    <div class="tier-head"><span class="tier-num">7</span><h2>How the mobile-responsive pass was actually built</h2></div>
+    <p class="tier-desc">Design tooling, tech, and the real bug that got caught and fixed — not "we added some media queries."</p>
+
+    <details class="q">
+      <summary>What's the mobile tech stack — did you add any new libraries?</summary>
+      <div class="a">
+        <p>No new runtime libraries — it's the same stack (Next.js, React, Tailwind CSS) doing more with what was already there. Two small new files: <code>NavIcon.tsx</code>, a hand-drawn inline SVG icon set (dashboard, CRM, training, finance, etc.) instead of pulling in an icon font or library like Material Symbols or Font Awesome — keeps the bundle lean and matches the app's existing dependency-light style. And <code>MobileNav.tsx</code>, a new client component for the phone-only navigation chrome. Everything else is Tailwind responsive classes (<code>sm:</code>, <code>md:</code>, <code>lg:</code> breakpoints) and plain CSS added to the existing <code>globals.css</code>.</p>
+        <div class="say"><b>Say it like this</b>Zero new dependencies — it's Tailwind's existing breakpoint system plus about 250 lines of new component code, not a rewrite or a new framework.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>How did you actually design the mobile screens before coding them?</summary>
+      <div class="a">
+        <p>Used Google's Stitch (an AI UI-design tool) to generate mobile-first mockups for all 13 screens in the app, seeded with a written spec describing the real component paths, the existing navy/teal design tokens, and three target resolutions (375px iPhone SE, 390px iPhone 12/13/14, 768px iPad portrait). Stitch's own output included a written component-mapping spec — which existing file each redesigned screen maps to, and the exact Tailwind pattern to use for the table→card conversion. That spec was then implemented by hand, directly in the real Next.js components — not pasted in wholesale, translated deliberately so business logic, permissions and data shapes were never touched, only layout.</p>
+        <div class="say"><b>Say it like this</b>Stitch gave me a mobile design system and a component map; I did the actual implementation myself, verifying each change against the real app rather than trusting a generated mockup.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>Walk me through the two biggest structural changes.</summary>
+      <div class="a">
+        <p><b>1. Navigation.</b> Below <code>md</code> (768px), the old sidebar degraded into an awkward 2-column link grid. Replaced with three real mobile patterns in <code>MobileNav.tsx</code>: a fixed top bar (hamburger, breadcrumb, account), a bottom tab bar showing the signed-in role's top 4 workspaces, and a slide-in drawer listing every workspace that role can reach. Both the desktop sidebar and the new mobile nav read from one shared <code>navItemsFor(role)</code> function in <code>SidebarNav.tsx</code>, so there's one source of truth for "what can this role see," not two lists that can drift apart.</p>
+        <p><b>2. Tables → cards.</b> <code>DataTable.tsx</code> now renders two layouts from one component: below 640px, each row becomes a stacked card (title, optional status pill, label/value grid); at 640px and up, the original <code>&lt;table&gt;</code> renders unchanged. Fully backward compatible — every existing <code>&lt;DataTable columns rows/&gt;</code> call needed zero changes, since the new title/status column indices are optional props with sane defaults.</p>
+        <div class="say"><b>Say it like this</b>Nobody should have to horizontally scroll through a table mid-demo on a judge's phone — every list in the app now has a real mobile layout, not a shrunk desktop one.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>Did anything actually break, and how did you catch it?</summary>
+      <div class="a">
+        <p>Yes — a real bug, and it's worth telling this story precisely because it demonstrates the verification discipline, not just the fix. After compacting the login and forgot-password pages' dark brand panel for mobile, I initially trusted a clean <code>npm run build</code> as proof it worked. It didn't — there was a large dead gap between the banner and the actual sign-in form. I only caught it by actually installing Playwright (<code>python -m playwright</code>, no special MCP tool required — I'd assumed I didn't have this capability earlier in the session and was wrong) and screenshotting the real rendered page at phone width. Two compounding CSS Grid issues: the page's outer <code>&lt;main&gt;</code> was unconditionally <code>grid</code>, and an implicit single-column grid row stretches to fill its container's full height by default — so both page sections were stretching to fill <code>min-h-screen</code> even on a phone, where there's no split-screen layout to stretch for. Fixed by making the grid itself conditional on <code>lg:</code> — below that breakpoint it's plain block flow, so each section is exactly as tall as its own content.</p>
+        <pre><code>&lt;!-- before: always a stretching grid row, even on phones --&gt;
+&lt;main className="grid min-h-screen lg:grid-cols-2"&gt;
+
+&lt;!-- after: grid (and the stretch behavior) only applies from lg up --&gt;
+&lt;main className="lg:grid lg:min-h-screen lg:grid-cols-2"&gt;</code></pre>
+        <div class="warn"><b>Why this is worth telling, not hiding</b>It's a better answer than "everything worked first try" — it shows the actual verification loop: build passing is not proof of correct layout, a real screenshot at the real breakpoint is.</div>
+        <div class="say"><b>Say it like this</b>My first fix looked done because the build passed — it wasn't, and I only found that by actually rendering the page and looking at it. That's the whole reason I verify with real screenshots now, not just a green build.</div>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>What specific accessibility/touch details did you handle?</summary>
+      <div class="a">
+        <p>44px minimum tap targets on every interactive element — applied globally via CSS (<code>.primary</code> buttons and every <code>&lt;details&gt;&lt;summary&gt;</code> collapsible-form header get <code>min-height</code> rules in <code>globals.css</code>, rather than patched one call site at a time), so the fix applies everywhere at once and can't be missed on a new form later. Submit buttons go full-width on mobile (<code>w-full sm:w-auto</code>). Select dropdowns with long generated labels (e.g. "Acme Corp / ₹40,000 / 2026-09-01") truncate instead of overflowing the viewport. Safe-area insets (<code>env(safe-area-inset-top/bottom)</code>) clear the fixed top bar and bottom tab bar from a phone's notch or home-indicator.</p>
+      </div>
+    </details>
+
+    <details class="q">
+      <summary>How was this actually verified — locally and live?</summary>
+      <div class="a">
+        <p>Every claim here has a screenshot behind it, not a guess. Locally: a clean production build (<code>rm -rf .next && npm run build</code>) served with <code>npm run start</code>, screenshotted with Playwright at all three target breakpoints plus 1280px desktop, checking both visual layout (no dead gaps, no clipped content) and <code>document.body.scrollWidth</code> against the viewport width (catches horizontal overflow programmatically, not just by eye). Then pushed, waited for the Vercel deployment to report <code>Ready</code>, and re-ran the exact same Playwright check against the live production URL — because a local pass doesn't prove the deployed build behaves the same way.</p>
+        <div class="say"><b>Say it like this</b>Every mobile fix was screenshotted twice — once locally before pushing, once live after deploying — because "it built" and "it deployed" are both necessary and neither is sufficient proof it actually renders right.</div>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ PITCH SYNTHESIS ============ -->
+  <div class="problem" id="pitch">
+    <p class="eyebrow">Putting it together</p>
+    <h2>How to talk about the problem statement and your solution, in one breath</h2>
+    <p><b>The problem, in one sentence:</b> PS-04 asks for one platform that runs a training business from first enquiry to net profit — but revenue tracking is easy and profit tracking is where every existing tool quits, because nobody ties a lead to the batch's actual costs in the same system.</p>
+    <p><b>The solution, in one sentence:</b> we modeled the <i>batch</i> as the profit centre — every revenue row and every cost row carries the same <code>batch_id</code>, in one relational Postgres schema with an append-only audit log, so per-batch net profit is a live database query instead of a month-end spreadsheet walk.</p>
+    <p><b>The proof, in one sentence:</b> it's not a mockup — RLS is enforced by the database and independently verified by bypassing the app layer, the AI is grounded to three read-only views by an actual database grant, and every number on the live dashboard was recomputed from raw tables and matched.</p>
+    <p class="final">If you remember nothing else: <b>"most teams build a CRM — we built a ledger, and we proved every boundary in it actually holds."</b></p>
+  </div>
+
+  <footer class="end">Continuum — RAMPeX PS-04 · Prep doc, not for judges' eyes</footer>
+</div>

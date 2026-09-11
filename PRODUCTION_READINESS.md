@@ -1,5 +1,12 @@
 # Production readiness audit — 10 September 2026
 
+> **Historical audit:** This document records the application's state on
+> 10 September 2026. Its authentication, authorization, idempotency, RLS,
+> financial workflow, and route-coverage blockers were addressed by subsequent
+> migrations and commits. Use the current automated audit results and code as
+> the release evidence; do not present the original verdict below as the current
+> state of the project.
+
 **Verdict: do not expose this app publicly with real customer data.** The existing demo works after the fixes below, but there is no authentication or application role authorization. This is a tested demo, not a production certification.
 
 ## Scope and evidence

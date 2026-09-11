@@ -34,6 +34,7 @@ async function main(){
   const actions=require('../web/src/lib/actions.ts');const {runDemoPipeline}=require('../web/src/lib/demo.ts');
   const {submitOperation}=require('../web/src/lib/operations.ts');const {authorizedTransaction}=require('../web/src/lib/transaction.ts');
   const {trainingData,financeData}=require('../web/src/lib/workspace.ts');
+  const {requestPasswordReset}=require('../web/src/lib/auth-actions.ts');
   const parties=(await setup.query("select id,roles from party where 'trainer'=any(roles) or 'student'=any(roles) order by id")).rows;
   const tokens={};const users={};
   for(const role of ['management','sales','ops','finance','trainer','student']){
@@ -44,6 +45,14 @@ async function main(){
    await setup.query("insert into auth_session(token_hash,user_id,expires_at) values($1,$2,now()+interval '1 hour')",[createHash('sha256').update(token).digest('hex'),user.id]);
   }
   currentToken=tokens.management;
+  const savedResendKey=process.env.RESEND_API_KEY;delete process.env.RESEND_API_KEY;
+  const beforeReset=(await setup.query('select c.password_hash,(select count(*)::int from auth_session where user_id=u.id) sessions from app_user u join auth_credential c on c.user_id=u.id where u.id=$1',[users.management])).rows[0];
+  const resetForm=new FormData();resetForm.set('email','management@qa.example');
+  const resetResponse=await requestPasswordReset({error:'',sent:false},resetForm);
+  const afterReset=(await setup.query('select c.password_hash,(select count(*)::int from auth_session where user_id=u.id) sessions from app_user u join auth_credential c on c.user_id=u.id where u.id=$1',[users.management])).rows[0];
+  if(savedResendKey)process.env.RESEND_API_KEY=savedResendKey;
+  assert.equal(resetResponse.sent,true);assert.deepEqual(afterReset,beforeReset);
+  results.push('missing email provider leaves password and active sessions unchanged');
   const requestId=randomUUID();const result=await runDemoPipeline(requestId);assert.equal(result.netProfit,'117000.00');
   const again=await runDemoPipeline(requestId);assert.equal(result.batchId,again.batchId);
   const events=(await setup.query('select actor_id from ledger_event where batch_id=$1',[result.batchId])).rows;

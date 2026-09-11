@@ -1,0 +1,26 @@
+# Local secrets and generated authentication evidence
+.env
+.env.*
+web/.env*
+audit-results/
+
+# Local audit/build scratch space
+.codex-build/
+**/__pycache__/
+*.tsbuildinfo
+
+# Presentation and design source artifacts are not part of the web runtime
+*.pptx
+*.docx
+~$*
+deliverables/
+stitch_export/
+cheat_sheet.html
+judge_qa_prep.html
+Continuum_Technical_Viva_Guide.md
+MANUAL_TESTING_GUIDE.md
+Continuum-Manual-Testing-Guide.docx
+
+# Database administration and local automation are executed separately
+/scripts/
+/db/

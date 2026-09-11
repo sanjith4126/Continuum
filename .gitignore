@@ -5,5 +5,8 @@ web/node_modules/
 web/.next/
 *.log
 audit-results/
+.codex-build/
+**/__pycache__/
+~$*
 MANUAL_TESTING_GUIDE.md
 Continuum-Manual-Testing-Guide.docx
