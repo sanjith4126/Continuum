@@ -28,7 +28,12 @@ export function ConsultantChat() {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ConsultantResponse | null>(null);
-  const [sqlExpanded, setSqlExpanded] = useState(true);
+  // Collapsed by default on small screens (a full SQL block pushes the
+  // Result table and actions off-screen on a phone); still opt-in visible
+  // on desktop as before, since there's room for it there.
+  const [sqlExpanded, setSqlExpanded] = useState(
+    typeof window !== "undefined" ? window.innerWidth >= 640 : true,
+  );
 
   async function ask(q: string) {
     const trimmed = q.trim();

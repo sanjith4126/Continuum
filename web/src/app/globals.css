@@ -52,7 +52,8 @@ body {
 .field { display:flex; flex-direction:column; gap:8px; font-size:13px; font-weight:500; }
 .field input,.field select,.field textarea { width:100%; min-width:0; background:white; border:1px solid #cbd5e1; border-radius:6px; padding:10px 12px; font-size:14px; font-weight:400; }
 .field input:focus,.field select:focus,.field textarea:focus { outline:2px solid #2563eb; outline-offset:2px; }
-.primary { display:inline-flex; justify-content:center; align-items:center; border-radius:6px; padding:11px 18px; background:#1e40af; color:white; font-size:13px; font-weight:600; }
+.primary { display:inline-flex; justify-content:center; align-items:center; min-height:44px; border-radius:6px; padding:11px 18px; background:#1e40af; color:white; font-size:13px; font-weight:600; }
+details > summary { min-height:48px; display:flex; align-items:center; }
 .primary:hover { background:#1e3a8a; }
 .primary:disabled { opacity:.5; cursor:wait; }
 .eyebrow { font-family:var(--font-data); font-size:11px; letter-spacing:.15em; color:#64748b; }
@@ -61,4 +62,9 @@ body {
 .data-table th { color:#64748b; font-size:11px; text-transform:uppercase; letter-spacing:.05em; }
 .data-table th,.data-table td { padding:12px; border-bottom:1px solid #eef2f6; vertical-align:top; }
 button,a,input,select,textarea { touch-action:manipulation; }
+
+/* Mobile nav: clears the fixed top bar / bottom tab bar behind a phone's
+   notch or home-indicator (iOS/Android safe areas). */
+.pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
 button:focus-visible,a:focus-visible { outline:2px solid #2563eb; outline-offset:3px; }

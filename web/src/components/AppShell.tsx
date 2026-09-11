@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { SidebarNav } from "./SidebarNav";
+import { MobileNav } from "./MobileNav";
 import { requireUser } from "@/lib/auth";
 import { logout } from "@/lib/auth-actions";
 
@@ -14,7 +15,8 @@ export async function AppShell({
   const user=await requireUser();
   return (
     <div className="min-h-screen bg-(--color-surface) font-(family-name:--font-ui)">
-      <aside className="relative z-50 flex w-full flex-col justify-between border-r border-(--color-outline-variant)/60 bg-(--color-surface-container-lowest) md:fixed md:left-0 md:top-0 md:h-full md:w-60">
+      <MobileNav role={user.role} breadcrumb={breadcrumb} userName={user.name} userEmail={user.email} />
+      <aside className="relative z-50 hidden w-full flex-col justify-between border-r border-(--color-outline-variant)/60 bg-(--color-surface-container-lowest) md:fixed md:left-0 md:top-0 md:flex md:h-full md:w-60">
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex h-14 items-center border-b border-(--color-outline-variant)/40 px-4">
             <span className="text-[15px] font-semibold tracking-tight text-(--color-on-surface)">
@@ -45,7 +47,7 @@ export async function AppShell({
       </aside>
 
       <div className="min-w-0 md:pl-60">
-        <header className="relative z-40 flex h-14 items-center justify-between border-b border-(--color-outline-variant)/50 bg-(--color-surface-container-lowest)/90 px-6 backdrop-blur-sm md:fixed md:left-60 md:right-0 md:top-0">
+        <header className="relative z-40 hidden h-14 items-center justify-between border-b border-(--color-outline-variant)/50 bg-(--color-surface-container-lowest)/90 px-6 backdrop-blur-sm md:fixed md:left-60 md:right-0 md:top-0 md:flex">
           <div className="flex items-center gap-3 text-[13px] text-(--color-on-surface-variant)">
             <Link
               href="/"
@@ -59,7 +61,7 @@ export async function AppShell({
             </span>
           </div>
         </header>
-        <main className="min-h-screen w-full min-w-0 bg-(--color-surface) md:pt-14">
+        <main className="min-h-screen w-full min-w-0 bg-(--color-surface) pt-14 pb-16 md:pt-14 md:pb-0">
           {children}
         </main>
       </div>

@@ -42,7 +42,7 @@ export function RefundForm({ payments }: { payments: PaidInstallment[] }) {
           <input name="amount" type="number" min="0.01" step="0.01" required disabled={!refundable.length} />
         </label>
         <div className="sm:col-span-2 flex flex-wrap items-center gap-4">
-          <button className="primary" disabled={pending || !refundable.length}>{pending ? "Saving..." : "Record refund"}</button>
+          <button className="primary w-full sm:w-auto" disabled={pending || !refundable.length}>{pending ? "Saving..." : "Record refund"}</button>
           {state.message && <p role="status" className={`text-sm ${state.ok ? "text-green-700" : "text-red-700"}`}>{state.message}</p>}
         </div>
       </form>
