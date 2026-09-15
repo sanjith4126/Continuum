@@ -79,16 +79,22 @@ async function callGroq(apiKey: string, messages: ChatMessage[], maxTokens: numb
  * env vars). Falls back automatically on 429/402/5xx. Throws if both fail.
  */
 export async function chatWithFallback(
-  purpose: "consultant" | "assistant",
+  purpose: "consultant" | "assistant" | "scoping",
   messages: ChatMessage[],
   maxTokens = 500
 ): Promise<string> {
+  // "scoping" (the AI program-scoping interview) deliberately reuses the
+  // consultant's key pair rather than provisioning a 4th Groq account --
+  // it's staff-facing like the consultant, not student-facing like the
+  // assistant, and adding new API keys wasn't something to block a demo
+  // build on. Revisit if scoping volume ever competes with consultant
+  // traffic for the same rate limit.
   const primaryVar =
-    purpose === "consultant" ? "GROQ_API_KEY_CONSULTANT" : "GROQ_API_KEY_ASSISTANT";
+    purpose === "assistant" ? "GROQ_API_KEY_ASSISTANT" : "GROQ_API_KEY_CONSULTANT";
   const fallbackVar =
-    purpose === "consultant"
-      ? "GROQ_API_KEY_CONSULTANT_FALLBACK"
-      : "GROQ_API_KEY_ASSISTANT_FALLBACK";
+    purpose === "assistant"
+      ? "GROQ_API_KEY_ASSISTANT_FALLBACK"
+      : "GROQ_API_KEY_CONSULTANT_FALLBACK";
 
   const primary = process.env[primaryVar];
   const fallback = process.env[fallbackVar];
