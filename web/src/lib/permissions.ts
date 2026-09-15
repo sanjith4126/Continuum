@@ -11,6 +11,12 @@ export const permissions = {
  assistant: ["student"],
  accounts: ["management"],
  demo: ["management"],
+ // Academic layer: a trainer teaches (posts materials/assignments, grades,
+ // queues daily practice) on batches they're assigned to; ops/management
+ // can see across all batches the same way they already can for training
+ // ops. Students take assignments and see their own grades/materials.
+ academicTeach: ["management", "ops", "trainer"],
+ academicLearn: ["student"],
 } satisfies Record<string, Role[]>;
 export type Permission = keyof typeof permissions;
 export function can(role: Role, permission: Permission) { return (permissions[permission] as Role[]).includes(role); }

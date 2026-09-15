@@ -6,10 +6,13 @@ export const NAV_ITEMS:{href:string;label:string;shortLabel:string;permission:Pe
  {href:"/dashboard",label:"Overview",shortLabel:"Home",permission:"dashboard",icon:"space_dashboard"},
  {href:"/crm",label:"Sales & enquiries",shortLabel:"CRM",permission:"crm",icon:"contacts"},
  {href:"/training",label:"Training operations",shortLabel:"Training",permission:"training",icon:"school"},
+ {href:"/academic",label:"Coursework & grading",shortLabel:"Academic",permission:"academicTeach",icon:"school"},
  {href:"/finance",label:"Billing & payments",shortLabel:"Finance",permission:"finance",icon:"payments"},
  {href:"/collections",label:"Collections",shortLabel:"Collections",permission:"finance",icon:"account_balance"},
  {href:"/consultant",label:"Data consultant",shortLabel:"Consultant",permission:"consultant",icon:"smart_toy"},
+ {href:"/scoping",label:"AI program scoping",shortLabel:"Scoping",permission:"crm",icon:"smart_toy"},
  {href:"/assistant",label:"My programmes",shortLabel:"Assistant",permission:"assistant",icon:"forum"},
+ {href:"/coursework",label:"My coursework",shortLabel:"Coursework",permission:"academicLearn",icon:"school"},
  {href:"/accounts",label:"Team & access",shortLabel:"Accounts",permission:"accounts",icon:"admin_panel_settings"},
  {href:"/pipeline",label:"Demo lifecycle",shortLabel:"Pipeline",permission:"demo",icon:"bolt"},
 ];
